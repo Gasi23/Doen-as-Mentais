@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Alessandra Larissa é uma psicóloga renomada que oferece avaliações psicológicas, relatórios detalhados e acompanhamento do progresso do rendimento.">
+    <meta name="keywords" content="Psicóloga, Avaliações Psicológicas, Relatórios Psicológicos, Progresso de Rendimento">
+    <meta name="author" content="Alessandra Larissa - Psicóloga">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alessandra Larissa - Psicóloga</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+</head>
+<body>
+    <header>
+        <h1>Alessandra Larissa - Psicóloga <i class="fas fa-brain"></i></h1>
+        <nav>
+            <a href="index.html"><i class="fas fa-home"></i> Home</a>
+            <a href="calculadora-bem-estar.html"><i class="fas fa-heartbeat"></i> Calculadora de Bem-Estar</a>
+            <a href="livros-recomendados.html"><i class="fas fa-book"></i> Livros Recomendados</a> <!-- Novo Link -->
+            <a href="login.html"><i class="fas fa-sign-in-alt"></i> Login</a>
+            <a href="register.html"><i class="fas fa-user-plus"></i> Registrar</a>
+            <a href="sobre.html"><i class="fas fa-info-circle"></i> Sobre</a>
+            <a href="contato.html"><i class="fas fa-envelope"></i> Contato</a>
+            <a href="faqs.html"><i class="fas fa-question-circle"></i> FAQs</a>
+            <a href="politica.html"><i class="fas fa-shield-alt"></i> Política de Privacidade</a>        </nav>        
+    </header>
+         
+
+    <main>
+        <section class="intro">
+            <h2 class="animate__animated animate__fadeInDown">Bem-vindo ao site de Alessandra Larissa, Psicóloga</h2>
+            <p class="animate__animated animate__fadeInUp">Oferecemos avaliações psicológicas, relatórios detalhados e acompanhamento do progresso do rendimento.</p>
+        </section>
+
+        <section id="resources" class="resources-container">
+            <h3>Recursos Úteis <i class="fas fa-book"></i></h3>
+            <ul>
+                <li><a href="https://www.saudemais.org" target="_blank">Saúde Mais</a></li>
+                <li><a href="https://www.mentalhealth.org" target="_blank">Mental Health Foundation</a></li>
+                <li><a href="https://www.psychologytoday.com" target="_blank">Psychology Today</a></li>
+                <li><a href="https://www.ted.com/talks" target="_blank">TED Talks</a></li>
+            </ul>
+        </section>
+
+        <section id="search" class="search-container">
+            <input type="text" id="search-input" placeholder="Buscar no site..." onkeyup="pesquisarNoSite()">
+            <div id="search-results" class="search-results"></div>
+        </section>
+
+        <section id="newsletter" class="newsletter-container">
+            <h3>Assine nossa Newsletter <i class="fas fa-envelope"></i></h3>
+            <form id="newsletter-form">
+                <input type="email" id="newsletter-email" placeholder="Digite seu email">
+                <button type="button" onclick="assinarNewsletter()">Assinar</button>
+            </form>
+        </section>        
+        
+        <section id="appointment" class="appointment-container">
+            <h3>Agende uma Consulta <i class="fas fa-calendar-alt"></i></h3>
+            <form id="appointment-form">
+                <div class="input-container">
+                    <label for="appointment-name">Nome</label>
+                    <input type="text" id="appointment-name" required>
+                </div>
+                <div class="input-container">
+                    <label for="appointment-email">Email</label>
+                    <input type="email" id="appointment-email" required>
+                </div>
+                <div class="input-container">
+                    <label for="appointment-date">Data</label>
+                    <input type="date" id="appointment-date" required>
+                </div>
+                <div class="input-container">
+                    <label for="appointment-time">Hora</label>
+                    <input type="time" id="appointment-time" required>
+                </div>
+                <button type="button" onclick="agendarConsulta()">Agendar</button>
+            </form>
+        </section>
+        
+        <section id="gallery" class="gallery-container">
+            <h3>Galeria de Imagens <i class="fas fa-images"></i></h3>
+            <div class="gallery">
+                <img src="img1.jpg" alt="Imagem 1">
+                <img src="img2.jpg" alt="Imagem 2">
+                <img src="img3.jpg" alt="Imagem 3">
+                <!-- Adicione mais imagens conforme necessário -->
+            </div>
+        </section>
+        
+        <section id="feedback" class="feedback-container">
+            <h3>Deixe seu Feedback <i class="fas fa-comment-alt"></i></h3>
+            <form id="feedback-form">
+                <input type="text" id="feedback-name" placeholder="Seu nome" required>
+                <textarea id="feedback-message" placeholder="Seu feedback" rows="4" required></textarea>
+                <button type="button" onclick="enviarFeedback()">Enviar</button>
+            </form>
+            <div id="feedback-display" class="feedback-display"></div>
+        </section>    
+        
+        <section id="daily-therapy" class="therapy-container">
+            <h3>Registrar Terapia do Dia <i class="fas fa-notes-medical"></i></h3>
+            <form id="therapy-form">
+                <div class="input-container">
+                    <label for="patient-name">Nome do Paciente</label>
+                    <input type="text" id="patient-name" required>
+                </div>
+                <div class="input-container">
+                    <label for="therapy-details">Detalhes da Terapia</label>
+                    <textarea id="therapy-details" rows="4" required></textarea>
+                </div>
+                <div class="input-container">
+                    <label for="therapy-date">Data</label>
+                    <input type="date" id="therapy-date" required>
+                </div>
+                <button type="button" onclick="registrarTerapia()">Registrar</button>
+            </form>
+        </section>       
+        
+        <section id="therapy-logs" class="therapy-logs-container">
+            <h3>Registro de Terapias <i class="fas fa-file-medical"></i></h3>
+            <div id="therapy-list"></div>
+        </section>        
+
+        <section id="testimonials" class="testimonials-container">
+            <h3>Depoimentos dos Usuários <i class="fas fa-comments"></i></h3>
+            <div class="testimonial">
+                <blockquote>
+                    "Alessandra me ajudou a superar minha ansiedade de maneira incrível. Recomendo fortemente seus serviços."
+                    <footer>— João Silva</footer>
+                </blockquote>
+            </div>
+            <div class="testimonial">
+                <blockquote>
+                    "Profissional excelente. Atendimento acolhedor e eficiente."
+                    <footer>— Maria Souza</footer>
+                </blockquote>
+            </div>
+            <!-- Adicione mais depoimentos conforme necessário -->
+        </section>
+        
+        <section id="members" class="members-container">
+            <h3>Área Exclusiva para Membros <i class="fas fa-user-lock"></i></h3>
+            <p>Faça login para acessar conteúdos exclusivos e participar de fóruns de discussão.</p>
+            <a href="login.html" class="btn">Login</a>
+            <a href="register.html" class="btn">Registrar</a>
+        </section>
+        
+        <section id="events" class="events-container">
+            <h3>Próximos Eventos e Webinars <i class="fas fa-calendar-alt"></i></h3>
+            <article>
+                <h4>Webinar sobre Ansiedade</h4>
+                <p>Data: 15 de Novembro de 2024</p>
+                <a href="inscricao.html" class="btn">Inscrever-se</a>
+            </article>
+            <article>
+                <h4>Oficina de Meditação</h4>
+                <p>Data: 20 de Novembro de 2024</p>
+                <a href="inscricao.html" class="btn">Inscrever-se</a>
+            </article>
+            <!-- Adicione mais eventos conforme necessário -->
+        </section>        
+        
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Alessandra Larissa - Psicóloga</p>
+        <nav>
+            <a href="sobre.html">Sobre</a>
+            <a href="contato.html">Contato</a>
+            <a href="politica.html">Política de Privacidade</a>
+        </nav>
+        <div class="social-icons">
+            <a href="https://www.facebook.com" target="_blank"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://www.instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+            <a href="https://www.linkedin.com" target="_blank"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

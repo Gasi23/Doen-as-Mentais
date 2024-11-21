@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta name="description" content="Alessandra Larissa é uma psicóloga renomada que oferece avaliações psicológicas, relatórios detalhados e acompanhamento do progresso do rendimento.">
+<meta name="keywords" content="Psicóloga, Avaliações Psicológicas, Relatórios Psicológicos, Progresso de Rendimento">
+<meta name="author" content="Alessandra Larissa - Psicóloga">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Usuário - Alessandra Larissa - Psicóloga</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Alessandra Larissa - Psicóloga <i class="fas fa-brain"></i></h1>
+        <nav>
+            <a href="index.html"><i class="fas fa-home"></i> Home</a>
+            <a href="calculadora-bem-estar.html"><i class="fas fa-heartbeat"></i> Calculadora de Bem-Estar</a>
+            <a href="livros-recomendados.html"><i class="fas fa-book"></i> Livros Recomendados</a> <!-- Novo Link -->
+            <a href="login.html"><i class="fas fa-sign-in-alt"></i> Login</a>
+            <a href="register.html"><i class="fas fa-user-plus"></i> Registrar</a>
+            <a href="sobre.html"><i class="fas fa-info-circle"></i> Sobre</a>
+            <a href="contato.html"><i class="fas fa-envelope"></i> Contato</a>
+            <a href="faqs.html"><i class="fas fa-question-circle"></i> FAQs</a>
+            <a href="politica.html"><i class="fas fa-shield-alt"></i> Política de Privacidade</a>
+                </nav>        
+    </header>
+     
+
+    <main>
+        <!-- Seção de Perfil -->
+        <section id="profile" class="profile-container">
+            <h2>Bem-vindo, <span id="usuario-nome" aria-live="polite"></span> <i class="fas fa-smile"></i></h2>
+        </section>
+
+        <!-- Seção de Histórico -->
+        <section id="historico" class="history-container">
+            <h3>Histórico de Avaliações <i class="fas fa-history"></i></h3>
+            <div class="history-list" id="historico">
+                <p class="placeholder">Nenhum histórico encontrado.</p>
+            </div>
+        </section>
+
+        <!-- Seção de Relatórios -->
+        <section id="relatorios" class="reports-container">
+            <h3>Relatórios do Psicólogo <i class="fas fa-file-alt"></i></h3>
+            <div class="reports-list" id="relatorios">
+                <p class="placeholder">Nenhum relatório disponível.</p>
+            </div>
+            <textarea 
+                id="novo-relatorio" 
+                placeholder="Adicionar novo relatório..." 
+                aria-label="Adicionar novo relatório" 
+                rows="4" 
+                maxlength="500"></textarea>
+            <button type="button" class="add-report-btn" onclick="adicionarRelatorio()">Adicionar Relatório</button>
+        </section>
+
+        <!-- Seção de Progresso -->
+        <section id="progresso" class="progress-container">
+            <h3>Progresso do Rendimento <i class="fas fa-chart-line"></i></h3>
+            <div class="chart-wrapper">
+                <canvas id="graficoRendimento" aria-label="Gráfico de progresso do rendimento"></canvas>
+            </div>
+        </section>
+
+        <!-- Seção de Feedback -->
+<section id="feedback" class="feedback-container">
+    <h3>Deixe seu Feedback <i class="fas fa-comment-alt"></i></h3>
+    <textarea 
+        id="novo-feedback" 
+        placeholder="Deixe seu feedback aqui..." 
+        aria-label="Deixe seu feedback" 
+        rows="4" 
+        maxlength="500"></textarea>
+    <button type="button" class="add-feedback-btn" onclick="adicionarFeedback()">Enviar Feedback</button>
+</section>
+
+<!-- Seção do Chatbot -->
+<section id="chatbot" class="chatbot-container">
+    <h3>Chat ao Vivo <i class="fas fa-comment-dots"></i></h3>
+    <div id="chat-window" class="chat-window">
+        <div id="chat-content" class="chat-content">
+            <!-- Mensagens do chat aparecerão aqui -->
+        </div>
+        <input type="text" id="chat-input" placeholder="Digite sua mensagem..." />
+        <button type="button" onclick="enviarMensagem()">Enviar</button>
+    </div>
+</section>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Alessandra Larissa - Psicóloga</p>
+        <nav>
+            <a href="sobre.html">Sobre</a>
+            <a href="contato.html">Contato</a>
+            <a href="politica.html">Política de Privacidade</a>
+        </nav>
+        <div class="social-icons">
+            <a href="https://www.facebook.com" target="_blank"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://www.instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+            <a href="https://www.linkedin.com" target="_blank"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+    </footer>    
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
