@@ -1,5 +1,9 @@
 /* Importar fontes do Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+/* ./src/styles/tailwind.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Estilo global */
 body {
