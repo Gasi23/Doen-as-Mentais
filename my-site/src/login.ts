@@ -1,10 +1,15 @@
 
 import { LitElement, css, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
+import { supabase } from './supabase'
 
 @customElement('login-page')
 export class LoginPage extends LitElement {
   @state() private userType = 'paciente'
+  @state() private mensagem = ''
+  @state() private carregando = false
+  @state() private modoRecuperacao = false
+  @state() private modoNovaSenha = false
 
   static styles = css`
     :host {
@@ -12,258 +17,439 @@ export class LoginPage extends LitElement {
       min-height: 100vh;
       font-family: Arial, sans-serif;
       color: #514653;
-      background: linear-gradient(135deg, #fffcfa, #f3eaf5);
     }
 
     * {
       box-sizing: border-box;
     }
 
-    .container {
+    main {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 30px 20px;
+      padding: 30px 18px;
+      background: linear-gradient(135deg, #fffcfa, #f3eaf5);
     }
 
-    .login-card {
+    section {
       width: 100%;
       max-width: 460px;
       padding: 40px;
-      background: white;
+      background: #fff;
       border-radius: 24px;
-      box-shadow: 0 12px 40px #80648318;
+      box-shadow: 0 12px 40px rgba(128, 100, 131, 0.12);
       text-align: center;
     }
 
-    .logo {
+    img {
+      display: block;
       width: 145px;
       height: 115px;
       object-fit: contain;
-      margin-bottom: 10px;
+      margin: 0 auto 20px;
     }
 
     h1 {
+      margin: 0 0 12px;
       color: #806483;
       font-family: Georgia, serif;
-      font-size: 30px;
+      font-size: 29px;
       font-weight: normal;
-      margin: 10px 0;
     }
 
-    .subtitle {
-      color: #756b76;
+    .descricao {
+      margin: 0 0 28px;
+      color: #817783;
       font-size: 14px;
       line-height: 1.6;
-      margin-bottom: 28px;
     }
 
-    .user-types {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .tipo-usuario {
+      display: flex;
+      gap: 10px;
       margin-bottom: 25px;
     }
 
-    .user-type {
-      padding: 15px 10px;
-      border: 1px solid #eadbea;
-      border-radius: 14px;
-      background: #fffcfe;
+    .tipo-btn {
+      flex: 1;
+      padding: 13px 8px;
+      border: 1px solid #e5d9e8;
+      border-radius: 12px;
+      background: #fff;
       color: #806483;
-      cursor: pointer;
       font-size: 14px;
       transition: 0.2s;
     }
 
-    .user-type.active {
-      border: 2px solid #987b9a;
-      background: #f8eff8;
+    .tipo-btn.ativo {
+      background: #f3eaf5;
+      border-color: #987b9a;
+      color: #705374;
       font-weight: bold;
     }
 
-    .user-type span {
-      display: block;
-      font-size: 25px;
-      margin-bottom: 7px;
-    }
-
-    .field {
+    form {
+      display: flex;
+      flex-direction: column;
       text-align: left;
-      margin-bottom: 18px;
     }
 
     label {
-      display: block;
-      margin-bottom: 8px;
-      color: #68576b;
-      font-size: 13px;
-      font-weight: bold;
-    }
-
-    input {
-      width: 100%;
-      padding: 14px;
-      border: 1px solid #eadbea;
-      border-radius: 12px;
-      outline: none;
+      margin: 0 0 7px;
+      color: #625567;
       font-size: 14px;
+      font-weight: 600;
+    }
+
+    .campo {
+      width: 100%;
+      padding: 14px 15px;
+      margin: 0 0 19px;
+      border: 1px solid #e4dce6;
+      border-radius: 11px;
+      background: #fdfbfd;
       color: #514653;
-      background: #fffcfe;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
     }
 
-    input:focus {
+    .campo:focus {
       border-color: #987b9a;
-      box-shadow: 0 0 0 3px #987b9a18;
+      box-shadow: 0 0 0 3px rgba(152, 123, 154, 0.12);
     }
 
-    .submit {
+    .botao-principal {
       width: 100%;
       padding: 15px;
-      margin-top: 8px;
+      margin-top: 3px;
       border: none;
-      border-radius: 30px;
+      border-radius: 12px;
       background: #987b9a;
       color: white;
       font-size: 15px;
       font-weight: bold;
-      cursor: pointer;
       transition: 0.2s;
     }
 
-    .submit:hover {
+    .botao-principal:hover {
       background: #806483;
     }
 
-    .forgot {
-      display: inline-block;
-      margin-top: 20px;
-      color: #987b9a;
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 22px;
       font-size: 13px;
-      text-decoration: none;
     }
 
-    .register {
-      display: block;
-      margin-top: 20px;
+    a {
       color: #806483;
-      font-size: 14px;
       text-decoration: none;
-      font-weight: bold;
     }
 
-    .register:hover,
-    .forgot:hover,
-    .back:hover {
+    a:hover {
       text-decoration: underline;
     }
 
-    .back {
-      display: block;
-      margin-top: 25px;
-      color: #756b76;
+    .mensagem {
+      margin: 18px 0 0;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f8f0f7;
+      color: #806483;
       font-size: 13px;
-      text-decoration: none;
+      line-height: 1.5;
+    }
+
+    .voltar {
+      display: inline-block;
+      margin-top: 25px;
+      font-size: 13px;
     }
 
     @media (max-width: 480px) {
-      .login-card {
+      main {
+        padding: 18px 12px;
+      }
+
+      section {
         padding: 30px 22px;
+      }
+
+      h1 {
+        font-size: 25px;
       }
     }
   `
 
+  connectedCallback() {
+    super.connectedCallback()
+    this.verificarRecuperacao()
+  }
+
+  private async verificarRecuperacao() {
+    const hash = window.location.hash
+
+    if (hash.includes('type=recovery')) {
+      this.modoNovaSenha = true
+      this.userType = 'psicologa'
+    }
+
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        this.modoNovaSenha = true
+        this.userType = 'psicologa'
+        this.mensagem = ''
+      }
+    })
+  }
+
+  private async solicitarRecuperacao(event: Event) {
+    event.preventDefault()
+
+    const form = event.currentTarget as HTMLFormElement
+    const dados = new FormData(form)
+    const email = String(dados.get('email') || '').trim()
+
+    this.carregando = true
+    this.mensagem = ''
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login.html`
+      })
+
+      if (error) throw error
+
+      this.mensagem = 'Enviamos um link de recuperação para seu e-mail. Verifique também a caixa de spam.'
+    } catch (error) {
+      console.error(error)
+      this.mensagem = 'Não foi possível enviar o e-mail. Tente novamente.'
+    } finally {
+      this.carregando = false
+    }
+  }
+
+  private async salvarNovaSenha(event: Event) {
+    event.preventDefault()
+
+    const form = event.currentTarget as HTMLFormElement
+    const dados = new FormData(form)
+    const senha = String(dados.get('password') || '')
+    const confirmar = String(dados.get('confirmar') || '')
+
+    if (senha.length < 8) {
+      this.mensagem = 'A senha deve ter pelo menos 8 caracteres.'
+      return
+    }
+
+    if (senha !== confirmar) {
+      this.mensagem = 'As senhas não coincidem.'
+      return
+    }
+
+    this.carregando = true
+    this.mensagem = ''
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: senha
+      })
+
+      if (error) throw error
+
+      await supabase.auth.signOut()
+
+      this.modoNovaSenha = false
+      this.modoRecuperacao = false
+      this.mensagem = 'Senha atualizada com sucesso! Agora entre com sua nova senha.'
+    } catch (error) {
+      console.error(error)
+      this.mensagem = 'Não foi possível atualizar a senha. Solicite um novo link de recuperação.'
+    } finally {
+      this.carregando = false
+    }
+  }
+
+  private async handleSubmit(event: Event) {
+    event.preventDefault()
+
+    if (this.userType !== 'psicologa') {
+      this.mensagem = 'A área do paciente ainda não está disponível.'
+      return
+    }
+
+    const form = event.currentTarget as HTMLFormElement
+    const dados = new FormData(form)
+
+    const email = String(dados.get('email') || '').trim()
+    const senha = String(dados.get('password') || '')
+
+    this.carregando = true
+    this.mensagem = ''
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha
+      })
+
+      if (error) throw error
+
+      window.location.href = '/painel-psicologa.html'
+    } catch (error) {
+      console.error('Erro no login:', error)
+      this.mensagem = 'E-mail ou senha incorretos. Verifique seus dados.'
+    } finally {
+      this.carregando = false
+    }
+  }
+
   private selectUser(type: string) {
     this.userType = type
+    this.mensagem = ''
   }
-
-  private handleSubmit(event: Event) {
-  event.preventDefault()
-
-  if (this.userType === 'psicologa') {
-    window.location.href = '/painel-psicologa.html'
-    return
-  }
-
-  alert('A área do paciente será disponibilizada na próxima etapa.')
-}
 
   render() {
     return html`
-      <main class="container">
-        <section class="login-card">
-          <img
-            class="logo"
-            src="/logo-ale.jpeg"
-            alt="Alessandra Larissa Psicóloga"
-          />
+      <main>
+        <section>
+          <img src="/logo-ale.jpeg" alt="Alessandra Larissa Psicóloga">
 
-          <h1>Bem-vinda(o)!</h1>
+          <h1>
+            ${this.modoNovaSenha
+              ? 'Criar nova senha'
+              : this.modoRecuperacao
+                ? 'Recuperar senha'
+                : 'Bem-vinda(o)!'}
+          </h1>
 
-          <p class="subtitle">
-            Acesse seu espaço de cuidado, acolhimento e acompanhamento.
+          <p class="descricao">
+            ${this.modoNovaSenha
+              ? 'Cadastre uma nova senha para sua conta.'
+              : this.modoRecuperacao
+                ? 'Informe seu e-mail para receber o link de recuperação.'
+                : 'Acesse seu espaço de cuidado, acolhimento e acompanhamento.'}
           </p>
 
-          <div class="user-types">
-            <button
-              type="button"
-              class="user-type ${this.userType === 'paciente' ? 'active' : ''}"
-              @click=${() => this.selectUser('paciente')}
-            >
-              <span>♡</span>
-              Sou paciente
-            </button>
+          ${!this.modoNovaSenha && !this.modoRecuperacao ? html`
+            <div class="tipo-usuario">
+              <button
+                type="button"
+                class="tipo-btn ${this.userType === 'paciente' ? 'ativo' : ''}"
+                @click=${() => this.selectUser('paciente')}
+              >
+                ♡ Sou paciente
+              </button>
 
-            <button
-              type="button"
-              class="user-type ${this.userType === 'psicologa' ? 'active' : ''}"
-              @click=${() => this.selectUser('psicologa')}
-            >
-              <span>✿</span>
-              Sou psicóloga
-            </button>
-          </div>
-
-          <form @submit=${this.handleSubmit}>
-            <div class="field">
-              <label for="email">E-mail</label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Digite seu e-mail"
-                autocomplete="username"
-                required
-              />
+              <button
+                type="button"
+                class="tipo-btn ${this.userType === 'psicologa' ? 'ativo' : ''}"
+                @click=${() => this.selectUser('psicologa')}
+              >
+                ✿ Sou psicóloga
+              </button>
             </div>
+          ` : ''}
 
-            <div class="field">
-              <label for="password">Senha</label>
+          ${this.modoNovaSenha ? html`
+            <form @submit=${this.salvarNovaSenha}>
+              <label>Nova senha</label>
               <input
-                id="password"
+                class="campo"
                 type="password"
-                placeholder="Digite sua senha"
-                autocomplete="current-password"
+                name="password"
+                placeholder="Digite a nova senha"
                 required
-              />
+                minlength="8"
+              >
+
+              <label>Confirme a nova senha</label>
+              <input
+                class="campo"
+                type="password"
+                name="confirmar"
+                placeholder="Digite novamente"
+                required
+                minlength="8"
+              >
+
+              <button class="botao-principal" type="submit" ?disabled=${this.carregando}>
+                ${this.carregando ? 'Salvando...' : 'Salvar nova senha'}
+              </button>
+            </form>
+          ` : this.modoRecuperacao ? html`
+            <form @submit=${this.solicitarRecuperacao}>
+              <label>E-mail</label>
+              <input
+                class="campo"
+                type="email"
+                name="email"
+                placeholder="Seu e-mail"
+                required
+              >
+
+              <button class="botao-principal" type="submit" ?disabled=${this.carregando}>
+                ${this.carregando ? 'Enviando...' : 'Enviar link de recuperação'}
+              </button>
+            </form>
+          ` : html`
+            <form @submit=${this.handleSubmit}>
+              <label>E-mail</label>
+              <input
+                class="campo"
+                type="email"
+                name="email"
+                placeholder="Seu e-mail"
+                required
+              >
+
+              <label>Senha</label>
+              <input
+                class="campo"
+                type="password"
+                name="password"
+                placeholder="Sua senha"
+                required
+              >
+
+              <button class="botao-principal" type="submit" ?disabled=${this.carregando}>
+                ${this.carregando ? 'Entrando...' : 'Entrar na minha conta'}
+              </button>
+            </form>
+
+            <div class="links">
+              <a href="#" @click=${(e: Event) => {
+                e.preventDefault()
+                this.modoRecuperacao = true
+                this.mensagem = ''
+              }}>
+                Esqueci minha senha
+              </a>
+
+              <a href="/cadastro.html">
+                Ainda não tem conta? Criar minha conta
+              </a>
             </div>
+          `}
 
-            <button class="submit" type="submit">
-              Entrar na minha conta
-            </button>
-          </form>
+          ${this.mensagem ? html`
+            <p class="mensagem">${this.mensagem}</p>
+          ` : ''}
 
-          <a class="forgot" href="#">
-            Esqueci minha senha
-          </a>
-
-          <a class="register" href="/cadastro.html">
-            Ainda não tem conta? Criar minha conta
-          </a>
-
-          <a class="back" href="/">
-            ← Voltar para o início
-          </a>
+          <a class="voltar" href="/">← Voltar para o início</a>
         </section>
       </main>
     `

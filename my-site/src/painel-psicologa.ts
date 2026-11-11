@@ -2,6 +2,43 @@
 import { LitElement, css, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 
+interface Paciente {
+  nome: string
+  email: string
+  telefone: string
+  nascimento: string
+  status: string
+}
+
+interface Sessao {
+  paciente: string
+  data: string
+  horario: string
+  modalidade: string
+  status: string
+}
+
+interface Prontuario {
+  paciente: string
+  data: string
+  registro: string
+}
+
+interface Documento {
+  tipo: string
+  paciente: string
+  data: string
+  conteudo: string
+}
+
+interface Pagamento {
+  paciente: string
+  valor: number
+  data: string
+  formaPagamento: string
+  status: string
+}
+
 @customElement('painel-psicologa')
 export class PainelPsicologa extends LitElement {
   @state()
@@ -15,43 +52,24 @@ export class PainelPsicologa extends LitElement {
   private mostrarCadastro = false
 
   @state()
-  private pacienteSelecionado: number | null = null
-
-  @state()
-  private pacientes: Array<{
-    nome: string
-    email: string
-    telefone: string
-    nascimento: string
-    status: string
-  }> = []
+  private pacientes: Paciente[] = []
 
   // AGENDA
   @state()
   private mostrarCadastroSessao = false
 
   @state()
-  private sessoes: Array<{
-    paciente: string
-    data: string
-    horario: string
-    modalidade: string
-    status: string
-  }> = []
+  private sessoes: Sessao[] = []
 
   // PRONTUÁRIOS
   @state()
   private mostrarCadastroProntuario = false
 
   @state()
-  private prontuarios: Array<{
-    paciente: string
-    data: string
-    registro: string
-  }> = []
+  private buscaProntuario = ''
 
   @state()
-  private buscaProntuario = ''
+  private prontuarios: Prontuario[] = []
 
   // DOCUMENTOS
   @state()
@@ -69,17 +87,31 @@ export class PainelPsicologa extends LitElement {
   @state()
   private mostrarPreviaDocumento = false
 
+  @state()
+  private documentos: Documento[] = []
+
+  // FINANCEIRO
+  @state()
+  private mostrarCadastroPagamento = false
+
+  @state()
+  private pagamentos: Pagamento[] = []
+
   static styles = css`
     :host {
       display: block;
       min-height: 100vh;
-      font-family: Arial, sans-serif;
       color: #514653;
-      background: #faf7fa;
+      background: #fffcfa;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
     * {
       box-sizing: border-box;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
     }
 
     .layout {
@@ -88,448 +120,374 @@ export class PainelPsicologa extends LitElement {
     }
 
     .sidebar {
-      width: 255px;
-      background: #fff;
-      border-right: 1px solid #eee5ef;
-      padding: 28px 18px;
-      display: flex;
-      flex-direction: column;
+      width: 250px;
       flex-shrink: 0;
+      padding: 28px 18px;
+      background: #f3eaf5;
+      border-right: 1px solid #eadfea;
     }
 
-    .logo {
-      width: 100%;
-      max-width: 195px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 38px;
+      padding: 0 8px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .brand strong {
       display: block;
-      margin: 0 auto 35px;
-      object-fit: contain;
+      font-size: 15px;
+      color: #806483;
     }
 
-    .menu-title {
+    .brand span {
+      display: block;
+      margin-top: 4px;
       font-size: 11px;
-      color: #a397a5;
-      text-transform: uppercase;
+      color: #887b8b;
+    }
+
+    .menu-label {
+      margin: 20px 10px 10px;
+      color: #9a8b9c;
+      font-size: 10px;
+      font-weight: bold;
       letter-spacing: 1.2px;
-      margin: 15px 12px 12px;
+      text-transform: uppercase;
     }
 
     .menu {
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 6px;
     }
 
     .menu button {
-      border: none;
-      background: transparent;
-      color: #756b76;
-      text-align: left;
-      padding: 13px 14px;
+      width: 100%;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 0;
       border-radius: 10px;
-      font-size: 14px;
+      background: transparent;
+      color: #655768;
+      text-align: left;
       cursor: pointer;
-      transition: 0.2s;
+      transition: .2s;
     }
 
     .menu button:hover,
     .menu button.active {
-      background: #f3eaf5;
-      color: #806483;
-      font-weight: 600;
-    }
-
-    .sidebar-bottom {
-      margin-top: auto;
-      padding-top: 25px;
-      border-top: 1px solid #eee5ef;
-    }
-
-    .back-link {
-      display: block;
-      text-decoration: none;
-      color: #806483;
-      font-size: 13px;
-      padding: 12px;
+      background: #806483;
+      color: white;
     }
 
     .main {
       flex: 1;
       min-width: 0;
-      padding: 35px 42px;
+      padding: 30px;
     }
 
     .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 20px;
-      margin-bottom: 35px;
+      gap: 15px;
+      margin-bottom: 30px;
     }
 
     .topbar h1 {
+      margin: 0;
       font-size: 25px;
-      margin: 0 0 7px;
       color: #514653;
     }
 
-    .subtitle {
-      color: #928694;
-      font-size: 14px;
-      margin: 0;
+    .topbar p {
+      margin: 7px 0 0;
+      color: #938895;
+      font-size: 13px;
     }
 
     .profile {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: white;
-      padding: 10px 16px;
-      border-radius: 12px;
-      border: 1px solid #eee5ef;
+      gap: 10px;
+      font-size: 13px;
+      color: #806483;
     }
 
-    .avatar {
+    .profile-avatar {
       width: 38px;
       height: 38px;
-      border-radius: 50%;
-      background: #f3eaf5;
-      color: #806483;
       display: grid;
       place-items: center;
+      border-radius: 50%;
+      background: #f4b8b8;
+      color: white;
       font-weight: bold;
     }
 
-    .profile strong {
-      display: block;
-      font-size: 13px;
-    }
-
-    .profile span {
-      color: #928694;
-      font-size: 11px;
-    }
-
-    .welcome {
-      background: linear-gradient(120deg, #f3eaf5, #fff0f2);
-      border-radius: 18px;
-      padding: 28px;
-      margin-bottom: 27px;
-    }
-
-    .welcome h2 {
-      margin: 0 0 9px;
-      font-size: 21px;
-      color: #66516b;
-    }
-
-    .welcome p {
-      margin: 0;
-      font-size: 14px;
-      color: #756b76;
-      line-height: 1.6;
-    }
-
-    .section-heading {
+    .page-content {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 30px 0 17px;
-      gap: 12px;
-    }
-
-    .section-heading h2 {
-      font-size: 17px;
-      margin: 0;
+      flex-direction: column;
+      gap: 22px;
     }
 
     .cards {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 17px;
+      gap: 16px;
     }
 
-    .card {
-      background: white;
+    .card, .panel {
       padding: 22px;
+      border: 1px solid #eee6ee;
       border-radius: 15px;
-      border: 1px solid #eee5ef;
+      background: white;
+      box-shadow: 0 3px 14px rgba(80, 55, 80, .04);
     }
 
     .card-label {
-      color: #928694;
+      color: #8d8190;
       font-size: 13px;
-      margin-bottom: 13px;
     }
 
-    .card-number {
+    .card-value {
+      margin-top: 12px;
+      color: #806483;
       font-size: 28px;
       font-weight: bold;
-      color: #806483;
     }
 
     .card-description {
-      color: #a397a5;
-      font-size: 11px;
-      margin-top: 8px;
+      margin-top: 7px;
+      color: #a398a5;
+      font-size: 12px;
     }
 
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 20px;
-      margin-top: 22px;
-    }
-
-    .panel {
-      background: white;
-      border: 1px solid #eee5ef;
-      border-radius: 15px;
-      padding: 23px;
-    }
-
-    .panel h3 {
-      font-size: 16px;
-      margin: 0 0 20px;
-    }
-
-    .appointment {
+    .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      padding: 14px 0;
-      border-bottom: 1px solid #f1ebf2;
       flex-wrap: wrap;
-    }
-
-    .appointment:last-child {
-      border-bottom: none;
-    }
-
-    .appointment strong {
-      display: block;
-      font-size: 13px;
-      margin-bottom: 5px;
-    }
-
-    .appointment span {
-      font-size: 12px;
-      color: #928694;
-    }
-
-    .time {
-      color: #806483 !important;
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .quick-link {
-      display: block;
-      padding: 13px 15px;
-      background: #faf7fa;
-      border-radius: 10px;
-      color: #66516b;
-      text-decoration: none;
-      font-size: 13px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      border: none;
-      width: 100%;
-      text-align: left;
-    }
-
-    .quick-link:hover {
-      background: #f3eaf5;
-    }
-
-    .field {
-      text-align: left;
+      gap: 12px;
       margin-bottom: 18px;
     }
 
-    .field label {
-      display: block;
-      margin-bottom: 8px;
-      color: #68576b;
+    .section-header h2,
+    .panel h2 {
+      margin: 0;
+      color: #514653;
+      font-size: 18px;
+    }
+
+    .section-header p {
+      margin: 6px 0 0;
+      color: #968b98;
+      font-size: 12px;
+    }
+
+    .primary-button {
+      padding: 11px 17px;
+      border: 0;
+      border-radius: 9px;
+      background: #806483;
+      color: white;
+      cursor: pointer;
       font-size: 13px;
       font-weight: bold;
     }
 
-    .field input,
-    .field select,
-    .field textarea {
-      width: 100%;
-      padding: 13px;
-      border: 1px solid #eadbea;
-      border-radius: 10px;
-      outline: none;
-      font-size: 14px;
-      color: #514653;
-      background: #fffcfe;
-      font-family: Arial, sans-serif;
+    .primary-button:hover {
+      background: #6d5370;
     }
 
-    .field textarea {
-      min-height: 150px;
-      resize: vertical;
-      line-height: 1.6;
-    }
-
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
-      border-color: #987b9a;
-      box-shadow: 0 0 0 3px #987b9a18;
-    }
-
-    .submit {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 25px;
-      background: #987b9a;
-      color: white;
-      font-size: 14px;
-      font-weight: bold;
+    .secondary-button {
+      padding: 9px 14px;
+      border: 1px solid #d9cbdc;
+      border-radius: 9px;
+      background: white;
+      color: #806483;
       cursor: pointer;
     }
 
-    .submit:hover {
-      background: #806483;
-    }
-
-    .placeholder {
-      background: white;
-      padding: 35px;
-      border: 1px solid #eee5ef;
-      border-radius: 15px;
-      color: #756b76;
-      line-height: 1.7;
-    }
-
-    .placeholder h2 {
-      color: #66516b;
-      margin-top: 0;
-    }
-
-    .notice {
+    .danger-button {
+      padding: 8px 11px;
+      border: 0;
+      border-radius: 8px;
+      background: #fff0f0;
+      color: #bd6565;
+      cursor: pointer;
       font-size: 12px;
-      color: #928694;
-      margin-top: 20px;
-      line-height: 1.6;
     }
 
-    .patient-details {
-      margin-bottom: 20px;
-      background: #f8eff8;
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
     }
 
-    .patient-details p {
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      color: #68596b;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e5dce7;
+      border-radius: 9px;
+      outline: none;
+      background: #fff;
+      color: #514653;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #987b9a;
+      box-shadow: 0 0 0 3px #f3eaf5;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .search {
+      max-width: 360px;
+      margin-bottom: 18px;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
       font-size: 13px;
-      line-height: 1.7;
+    }
+
+    th, td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #f0eaf0;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: #887b8b;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: #5f5362;
     }
 
     .status {
       display: inline-block;
-      padding: 7px 11px;
+      padding: 6px 10px;
       border-radius: 20px;
       background: #f3eaf5;
-      color: #806483 !important;
-      font-size: 11px !important;
+      color: #806483;
+      font-size: 11px;
       font-weight: bold;
     }
 
-    .agenda-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    .status.pago, .status.realizada, .status.ativo {
+      background: #e9f5ed;
+      color: #42835a;
     }
 
-    .agenda-actions button {
-      width: auto;
-      margin: 0;
-      padding: 9px 12px;
+    .status.pendente {
+      background: #fff4df;
+      color: #a67a29;
+    }
+
+    .status.cancelada, .status.inativo {
+      background: #fff0f0;
+      color: #bd6565;
     }
 
     .empty {
-      text-align: center;
       padding: 30px 15px;
-      color: #928694;
-      font-size: 14px;
-      line-height: 1.6;
+      color: #968b98;
+      text-align: center;
+      font-size: 13px;
     }
 
-    .record-card {
-      background: #fff;
-      border: 1px solid #eee5ef;
-      border-radius: 13px;
-      padding: 20px;
-      margin-top: 14px;
-    }
-
-    .record-card h3 {
-      color: #66516b;
-      margin: 0 0 8px;
-      font-size: 15px;
-    }
-
-    .record-date {
-      color: #928694;
-      font-size: 12px;
-      margin-bottom: 14px;
-    }
-
-    .record-text {
-      color: #514653;
-      font-size: 14px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .document-warning {
-      margin: 20px 0;
-      padding: 13px;
-      background: #fff5e9;
-      border-radius: 9px;
-      color: #80613c;
+    .notice {
+      padding: 13px 15px;
+      border-radius: 10px;
+      background: #f8eff8;
+      color: #806483;
       font-size: 12px;
       line-height: 1.6;
     }
 
     .document-preview {
-      padding: 30px;
+      padding: 28px;
+      border: 1px solid #e8dfe8;
+      border-radius: 10px;
+      background: white;
+      line-height: 1.8;
+      white-space: pre-wrap;
     }
 
-    .document-preview h2 {
-      color: #66516b;
+    .document-preview h3 {
       text-align: center;
-      margin: 20px 0;
+      color: #514653;
     }
 
-    .document-preview .record-text {
-      margin: 25px 0;
+    .document-preview p {
+      margin: 12px 0;
+    }
+
+    .signature {
+      margin-top: 60px;
+      text-align: center;
+    }
+
+    .signature-line {
+      width: 240px;
+      margin: 0 auto 8px;
+      border-top: 1px solid #514653;
+    }
+
+    .finance-total {
+      color: #806483;
+      font-size: 25px;
+      font-weight: bold;
     }
 
     @media (max-width: 850px) {
-      .sidebar {
-        width: 210px;
-      }
-
-      .main {
-        padding: 25px 20px;
-      }
-
-      .cards {
-        grid-template-columns: 1fr;
-      }
-
-      .content-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 600px) {
       .layout {
         flex-direction: column;
       }
@@ -539,76 +497,118 @@ export class PainelPsicologa extends LitElement {
         padding: 15px;
       }
 
-      .logo {
-        max-width: 150px;
+      .brand {
         margin-bottom: 15px;
       }
 
       .menu {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        flex-direction: row;
+        overflow-x: auto;
       }
 
-      .menu-title,
-      .sidebar-bottom {
+      .menu button {
+        width: auto;
+        flex-shrink: 0;
+        font-size: 12px;
+      }
+
+      .menu-label {
         display: none;
       }
 
       .main {
-        padding: 22px 15px;
+        padding: 20px 15px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-group.full {
+        grid-column: auto;
       }
 
       .topbar {
         align-items: flex-start;
-        flex-direction: column;
       }
 
       .topbar h1 {
-        font-size: 22px;
+        font-size: 21px;
+      }
+
+      .profile span {
+        display: none;
       }
     }
 
     @media print {
-      body {
-        background: white;
+      body * {
+        visibility: hidden;
       }
 
-      .sidebar,
-      .topbar,
-      .section-heading,
-      .document-form,
-      .document-warning,
-      .print-button,
-      .notice {
-        display: none !important;
-      }
-
-      .layout,
-      .main {
-        display: block;
-        padding: 0;
-        margin: 0;
+      .document-preview,
+      .document-preview * {
+        visibility: visible;
       }
 
       .document-preview {
-        border: none;
-        padding: 20px;
-        margin: 0;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        border: 0;
+      }
+
+      .no-print {
+        display: none !important;
       }
     }
   `
 
   private menuItems = [
-    { id: 'visao-geral', label: 'Visão geral' },
-    { id: 'pacientes', label: 'Pacientes' },
-    { id: 'agenda', label: 'Agenda' },
-    { id: 'prontuarios', label: 'Prontuários' },
-    { id: 'documentos', label: 'Documentos' },
-    { id: 'financeiro', label: 'Financeiro' },
+    { id: 'visao-geral', nome: 'Visão geral', icone: '⌂' },
+    { id: 'pacientes', nome: 'Pacientes', icone: '♙' },
+    { id: 'agenda', nome: 'Agenda', icone: '▦' },
+    { id: 'prontuarios', nome: 'Prontuários', icone: '▤' },
+    { id: 'documentos', nome: 'Documentos', icone: '▧' },
+    { id: 'financeiro', nome: 'Financeiro', icone: 'R$' },
   ]
 
-  private mudarPagina(pagina: string) {
+  private navegar(pagina: string) {
     this.paginaAtual = pagina
+    this.mostrarCadastro = false
+    this.mostrarCadastroSessao = false
+    this.mostrarCadastroProntuario = false
+    this.mostrarCadastroPagamento = false
+    this.mostrarPreviaDocumento = false
+  }
+
+  private formatarData(data: string) {
+    if (!data) return '-'
+
+    const partes = data.split('-')
+    if (partes.length !== 3) return data
+
+    return `${partes[2]}/${partes[1]}/${partes[0]}`
+  }
+
+  private formatarMoeda(valor: number) {
+    return valor.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
+  }
+
+  private classeStatus(status: string) {
+    return status.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
   }
 
   // PACIENTES
@@ -618,27 +618,128 @@ export class PainelPsicologa extends LitElement {
     const formulario = event.target as HTMLFormElement
     const dados = new FormData(formulario)
 
-    const novoPaciente = {
+    const paciente: Paciente = {
       nome: String(dados.get('nome') || ''),
       email: String(dados.get('email') || ''),
       telefone: String(dados.get('telefone') || ''),
       nascimento: String(dados.get('nascimento') || ''),
-      status: 'Ativo',
+      status: String(dados.get('status') || 'Ativo'),
     }
 
-    this.pacientes = [...this.pacientes, novoPaciente]
-    this.mostrarCadastro = false
-    this.pacienteSelecionado = null
-    formulario.reset()
-  }
+    if (!paciente.nome.trim()) {
+      alert('Informe o nome do paciente.')
+      return
+    }
 
-  private visualizarPaciente(index: number) {
-    this.pacienteSelecionado = index
+    this.pacientes = [...this.pacientes, paciente]
+    formulario.reset()
+    this.mostrarCadastro = false
   }
 
   private excluirPaciente(index: number) {
-    this.pacientes = this.pacientes.filter((_, i) => i !== index)
-    this.pacienteSelecionado = null
+    if (confirm('Deseja excluir este paciente de demonstração?')) {
+      this.pacientes = this.pacientes.filter((_, i) => i !== index)
+    }
+  }
+
+  private renderPacientes() {
+    const filtrados = this.pacientes.filter(p =>
+      p.nome.toLowerCase().includes(this.buscaPaciente.toLowerCase()),
+    )
+
+    return html`
+      <div class="page-content">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Pacientes</h2>
+              <p>Gerencie os cadastros de pacientes.</p>
+            </div>
+            <button class="primary-button"
+              @click=${() => this.mostrarCadastro = !this.mostrarCadastro}>
+              ${this.mostrarCadastro ? 'Fechar cadastro' : '+ Novo paciente'}
+            </button>
+          </div>
+
+          ${this.mostrarCadastro ? html`
+            <form @submit=${this.cadastrarPaciente}>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nome completo *</label>
+                  <input name="nome" required placeholder="Nome do paciente">
+                </div>
+                <div class="form-group">
+                  <label>E-mail</label>
+                  <input name="email" type="email" placeholder="E-mail">
+                </div>
+                <div class="form-group">
+                  <label>Telefone</label>
+                  <input name="telefone" placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                  <label>Data de nascimento</label>
+                  <input name="nascimento" type="date">
+                </div>
+                <div class="form-group">
+                  <label>Status</label>
+                  <select name="status">
+                    <option>Ativo</option>
+                    <option>Inativo</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Salvar paciente</button>
+                <button class="secondary-button" type="button"
+                  @click=${() => this.mostrarCadastro = false}>Cancelar</button>
+              </div>
+            </form>
+          ` : ''}
+
+          <div class="search">
+            <input
+              placeholder="Pesquisar paciente pelo nome..."
+              .value=${this.buscaPaciente}
+              @input=${(e: Event) =>
+                this.buscaPaciente = (e.target as HTMLInputElement).value}
+            >
+          </div>
+
+          ${filtrados.length ? html`
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th>E-mail</th>
+                    <th>Telefone</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtrados.map(paciente => {
+                    const index = this.pacientes.indexOf(paciente)
+                    return html`
+                      <tr>
+                        <td>${paciente.nome}</td>
+                        <td>${paciente.email || '-'}</td>
+                        <td>${paciente.telefone || '-'}</td>
+                        <td><span class="status ${this.classeStatus(paciente.status)}">${paciente.status}</span></td>
+                        <td>
+                          <button class="danger-button"
+                            @click=${() => this.excluirPaciente(index)}>Excluir</button>
+                        </td>
+                      </tr>
+                    `
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ` : html`<div class="empty">Nenhum paciente cadastrado.</div>`}
+        </section>
+      </div>
+    `
   }
 
   // AGENDA
@@ -648,17 +749,22 @@ export class PainelPsicologa extends LitElement {
     const formulario = event.target as HTMLFormElement
     const dados = new FormData(formulario)
 
-    const novaSessao = {
+    const sessao: Sessao = {
       paciente: String(dados.get('paciente') || ''),
       data: String(dados.get('data') || ''),
       horario: String(dados.get('horario') || ''),
       modalidade: String(dados.get('modalidade') || ''),
-      status: 'Agendada',
+      status: String(dados.get('status') || 'Agendada'),
     }
 
-    this.sessoes = [...this.sessoes, novaSessao]
-    this.mostrarCadastroSessao = false
+    if (!sessao.paciente || !sessao.data || !sessao.horario) {
+      alert('Preencha os campos obrigatórios.')
+      return
+    }
+
+    this.sessoes = [...this.sessoes, sessao]
     formulario.reset()
+    this.mostrarCadastroSessao = false
   }
 
   private atualizarStatusSessao(index: number, status: string) {
@@ -668,16 +774,111 @@ export class PainelPsicologa extends LitElement {
   }
 
   private excluirSessao(index: number) {
-    if (confirm('Deseja excluir este agendamento de demonstração?')) {
+    if (confirm('Deseja excluir este atendimento de demonstração?')) {
       this.sessoes = this.sessoes.filter((_, i) => i !== index)
     }
   }
 
-  private formatarData(data: string) {
-    if (!data) return 'Data não informada'
+  private renderAgenda() {
+    return html`
+      <div class="page-content">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Agenda de atendimentos</h2>
+              <p>Organize os horários e acompanhe os atendimentos.</p>
+            </div>
+            <button class="primary-button"
+              ?disabled=${this.pacientes.length === 0}
+              @click=${() => this.mostrarCadastroSessao = !this.mostrarCadastroSessao}>
+              + Novo atendimento
+            </button>
+          </div>
 
-    const [ano, mes, dia] = data.split('-')
-    return `${dia}/${mes}/${ano}`
+          ${this.pacientes.length === 0 ? html`
+            <div class="notice">Cadastre um paciente antes de agendar um atendimento.</div>
+          ` : ''}
+
+          ${this.mostrarCadastroSessao ? html`
+            <form @submit=${this.cadastrarSessao}>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Paciente *</label>
+                  <select name="paciente" required>
+                    <option value="">Selecione</option>
+                    ${this.pacientes.map(p => html`<option value=${p.nome}>${p.nome}</option>`)}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Data *</label>
+                  <input name="data" type="date" required>
+                </div>
+                <div class="form-group">
+                  <label>Horário *</label>
+                  <input name="horario" type="time" required>
+                </div>
+                <div class="form-group">
+                  <label>Modalidade</label>
+                  <select name="modalidade">
+                    <option>Presencial</option>
+                    <option>Online</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Status</label>
+                  <select name="status">
+                    <option>Agendada</option>
+                    <option>Realizada</option>
+                    <option>Cancelada</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Salvar atendimento</button>
+                <button class="secondary-button" type="button"
+                  @click=${() => this.mostrarCadastroSessao = false}>Cancelar</button>
+              </div>
+            </form>
+          ` : ''}
+
+          ${this.sessoes.length ? html`
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Paciente</th><th>Data</th><th>Horário</th>
+                    <th>Modalidade</th><th>Status</th><th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.sessoes.map((sessao, index) => html`
+                    <tr>
+                      <td>${sessao.paciente}</td>
+                      <td>${this.formatarData(sessao.data)}</td>
+                      <td>${sessao.horario}</td>
+                      <td>${sessao.modalidade}</td>
+                      <td>
+                        <select
+                          .value=${sessao.status}
+                          @change=${(e: Event) => this.atualizarStatusSessao(
+                            index, (e.target as HTMLSelectElement).value,
+                          )}>
+                          <option>Agendada</option>
+                          <option>Realizada</option>
+                          <option>Cancelada</option>
+                        </select>
+                      </td>
+                      <td><button class="danger-button"
+                        @click=${() => this.excluirSessao(index)}>Excluir</button></td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+            </div>
+          ` : html`<div class="empty">Nenhum atendimento cadastrado.</div>`}
+        </section>
+      </div>
+    `
   }
 
   // PRONTUÁRIOS
@@ -687,36 +888,111 @@ export class PainelPsicologa extends LitElement {
     const formulario = event.target as HTMLFormElement
     const dados = new FormData(formulario)
 
-    const novoRegistro = {
+    const prontuario: Prontuario = {
       paciente: String(dados.get('paciente') || ''),
       data: String(dados.get('data') || ''),
-      registro: String(dados.get('registro') || '').trim(),
+      registro: String(dados.get('registro') || ''),
     }
 
-    if (
-      !novoRegistro.paciente ||
-      !novoRegistro.data ||
-      !novoRegistro.registro
-    ) {
-      alert('Preencha todos os campos para salvar o registro.')
+    if (!prontuario.paciente || !prontuario.data || !prontuario.registro.trim()) {
+      alert('Preencha todos os campos.')
       return
     }
 
-    this.prontuarios = [...this.prontuarios, novoRegistro]
-    this.mostrarCadastroProntuario = false
+    this.prontuarios = [...this.prontuarios, prontuario]
     formulario.reset()
+    this.mostrarCadastroProntuario = false
   }
 
   private excluirProntuario(index: number) {
     if (confirm('Deseja excluir este registro de demonstração?')) {
-      this.prontuarios = this.prontuarios.filter(
-        (_, i) => i !== index,
-      )
+      this.prontuarios = this.prontuarios.filter((_, i) => i !== index)
     }
   }
 
+  private renderProntuarios() {
+    const filtrados = this.prontuarios.filter(p =>
+      p.paciente.toLowerCase().includes(this.buscaProntuario.toLowerCase()),
+    )
+
+    return html`
+      <div class="page-content">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Prontuários</h2>
+              <p>Registros clínicos dos atendimentos.</p>
+            </div>
+            <button class="primary-button"
+              ?disabled=${this.pacientes.length === 0}
+              @click=${() => this.mostrarCadastroProntuario = !this.mostrarCadastroProntuario}>
+              + Novo registro
+            </button>
+          </div>
+
+          ${this.pacientes.length === 0 ? html`
+            <div class="notice">Cadastre um paciente antes de criar um prontuário.</div>
+          ` : ''}
+
+          ${this.mostrarCadastroProntuario ? html`
+            <form @submit=${this.cadastrarProntuario}>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Paciente *</label>
+                  <select name="paciente" required>
+                    <option value="">Selecione</option>
+                    ${this.pacientes.map(p => html`<option value=${p.nome}>${p.nome}</option>`)}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Data do registro *</label>
+                  <input name="data" type="date" required>
+                </div>
+                <div class="form-group full">
+                  <label>Registro *</label>
+                  <textarea name="registro" required
+                    placeholder="Digite o registro clínico..."></textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Salvar registro</button>
+                <button class="secondary-button" type="button"
+                  @click=${() => this.mostrarCadastroProntuario = false}>Cancelar</button>
+              </div>
+            </form>
+          ` : ''}
+
+          <div class="search">
+            <input placeholder="Pesquisar pelo nome do paciente..."
+              .value=${this.buscaProntuario}
+              @input=${(e: Event) =>
+                this.buscaProntuario = (e.target as HTMLInputElement).value}>
+          </div>
+
+          ${filtrados.length ? html`
+           ${filtrados.map((p) => html`
+              <article class="card" style="margin-bottom: 12px">
+                <div class="section-header">
+                  <div>
+                    <strong>${p.paciente}</strong>
+                    <p>${this.formatarData(p.data)}</p>
+                  </div>
+                  <button class="danger-button"
+                    @click=${() => this.excluirProntuario(this.prontuarios.indexOf(p))}>
+                    Excluir
+                  </button>
+                </div>
+                <p style="white-space: pre-wrap; line-height: 1.7">${p.registro}</p>
+              </article>
+            `)}
+          ` : html`<div class="empty">Nenhum prontuário encontrado.</div>`}
+        </section>
+      </div>
+    `
+  }
+
   // DOCUMENTOS
-  private gerarPreviaDocumento(event: Event) {
+  private gerarDocumento(event: Event) {
     event.preventDefault()
 
     const formulario = event.target as HTMLFormElement
@@ -725,854 +1001,480 @@ export class PainelPsicologa extends LitElement {
     this.tipoDocumento = String(dados.get('tipo') || '')
     this.pacienteDocumento = String(dados.get('paciente') || '')
     this.dataDocumento = String(dados.get('data') || '')
-    this.conteudoDocumento = String(dados.get('conteudo') || '').trim()
+    this.conteudoDocumento = String(dados.get('conteudo') || '')
 
-    if (
-      !this.tipoDocumento ||
-      !this.pacienteDocumento ||
-      !this.dataDocumento ||
-      !this.conteudoDocumento
-    ) {
-      alert('Preencha todos os campos do documento.')
+    if (!this.tipoDocumento || !this.pacienteDocumento || !this.dataDocumento ||
+        !this.conteudoDocumento.trim()) {
+      alert('Preencha todos os campos.')
       return
     }
 
     this.mostrarPreviaDocumento = true
   }
 
+  private salvarDocumento() {
+    const documento: Documento = {
+      tipo: this.tipoDocumento,
+      paciente: this.pacienteDocumento,
+      data: this.dataDocumento,
+      conteudo: this.conteudoDocumento,
+    }
+
+    this.documentos = [...this.documentos, documento]
+    this.mostrarPreviaDocumento = false
+    alert('Documento adicionado ao histórico desta demonstração.')
+  }
+
+  private excluirDocumento(index: number) {
+    if (confirm('Deseja excluir este documento de demonstração?')) {
+      this.documentos = this.documentos.filter((_, i) => i !== index)
+    }
+  }
+
+  private visualizarDocumento(documento: Documento) {
+    this.tipoDocumento = documento.tipo
+    this.pacienteDocumento = documento.paciente
+    this.dataDocumento = documento.data
+    this.conteudoDocumento = documento.conteudo
+    this.mostrarPreviaDocumento = true
+  }
+
   private renderDocumentos() {
     return html`
-      <div class="section-heading">
-        <div>
-          <h2>Documentos psicológicos</h2>
-          <p class="subtitle">
-            Preparação e visualização de documentos profissionais.
-          </p>
-        </div>
-      </div>
-
-      ${this.pacientes.length === 0
-        ? html`
-            <div class="panel">
-              <h3>Nenhum paciente cadastrado</h3>
-              <p class="notice">
-                Cadastre um paciente na seção Pacientes antes de preparar
-                um documento nesta demonstração.
-              </p>
-
-              <button
-                class="submit"
-                @click=${() => this.mudarPagina('pacientes')}
-              >
-                Ir para Pacientes
-              </button>
+      <div class="page-content">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Documentos</h2>
+              <p>Prepare documentos para revisão profissional.</p>
             </div>
-          `
-        : html`
-            <form
-              class="panel document-form"
-              @submit=${this.gerarPreviaDocumento}
-            >
-              <h3>Novo documento</h3>
+          </div>
 
-              <div class="field">
-                <label>Tipo de documento</label>
+          ${this.pacientes.length === 0 ? html`
+            <div class="notice">Cadastre um paciente antes de criar um documento.</div>
+          ` : ''}
 
-                <select name="tipo" required>
-                  <option value="">Selecione o documento</option>
-                  <option value="Declaração de comparecimento">
-                    Declaração de comparecimento
-                  </option>
-                  <option value="Declaração de acompanhamento psicológico">
-                    Declaração de acompanhamento psicológico
-                  </option>
-                  <option value="Atestado psicológico">
-                    Atestado psicológico
-                  </option>
-                  <option value="Relatório psicológico">
-                    Relatório psicológico
-                  </option>
-                  <option value="Laudo psicológico">
-                    Laudo psicológico
-                  </option>
-                  <option value="Parecer psicológico">
-                    Parecer psicológico
-                  </option>
-                </select>
+          ${!this.mostrarPreviaDocumento ? html`
+            <form @submit=${this.gerarDocumento}>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Tipo de documento *</label>
+                  <select name="tipo" required>
+                    <option value="">Selecione</option>
+                    <option>Declaração de comparecimento</option>
+                    <option>Declaração de acompanhamento</option>
+                    <option>Relatório psicológico</option>
+                    <option>Encaminhamento</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Paciente *</label>
+                  <select name="paciente" required>
+                    <option value="">Selecione</option>
+                    ${this.pacientes.map(p => html`<option value=${p.nome}>${p.nome}</option>`)}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Data *</label>
+                  <input name="data" type="date" required>
+                </div>
+                <div class="form-group full">
+                  <label>Conteúdo do documento *</label>
+                  <textarea name="conteudo" required
+                    placeholder="Escreva o conteúdo para revisão da profissional..."></textarea>
+                </div>
               </div>
-
-              <div class="field">
-                <label>Paciente</label>
-
-                <select name="paciente" required>
-                  <option value="">Selecione um paciente</option>
-
-                  ${this.pacientes.map(
-                    (paciente) => html`
-                      <option value=${paciente.nome}>
-                        ${paciente.nome}
-                      </option>
-                    `,
-                  )}
-                </select>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Gerar prévia</button>
               </div>
-
-              <div class="field">
-                <label>Data do documento</label>
-                <input type="date" name="data" required />
-              </div>
-
-              <div class="field">
-                <label>Conteúdo do documento</label>
-
-                <textarea
-                  name="conteudo"
-                  rows="8"
-                  required
-                  placeholder="Insira o conteúdo que será revisado pela psicóloga..."
-                ></textarea>
-              </div>
-
-              <button class="submit" type="submit">
-                Visualizar documento
-              </button>
             </form>
+          ` : html`
+            <div class="document-preview">
+              <h3>${this.tipoDocumento}</h3>
+              <p><strong>Paciente:</strong> ${this.pacienteDocumento}</p>
+              <p><strong>Data:</strong> ${this.formatarData(this.dataDocumento)}</p>
+              <p>${this.conteudoDocumento}</p>
+              <div class="signature">
+                <div class="signature-line"></div>
+                <strong>Assinatura da profissional</strong>
+                <p>Preencher identificação e registro profissional após revisão.</p>
+              </div>
+            </div>
+            <div class="form-actions no-print">
+              <button class="primary-button" @click=${() => window.print()}>
+                Imprimir / Salvar PDF
+              </button>
+              <button class="secondary-button" @click=${this.salvarDocumento}>
+                Adicionar ao histórico
+              </button>
+              <button class="secondary-button"
+                @click=${() => this.mostrarPreviaDocumento = false}>Voltar</button>
+            </div>
           `}
+        </section>
 
-      ${this.mostrarPreviaDocumento
-        ? html`
-            <article class="record-card document-preview">
-              <p class="record-date">PRÉ-VISUALIZAÇÃO · RASCUNHO</p>
-
-              <h2>${this.tipoDocumento}</h2>
-
-              <p>
-                <strong>Paciente:</strong>
-                ${this.pacienteDocumento}
-              </p>
-
-              <p>
-                <strong>Data:</strong>
-                ${this.formatarData(this.dataDocumento)}
-              </p>
-
-              <div class="record-text">${this.conteudoDocumento}</div>
-
-              <div class="document-warning">
-                Este documento é apenas uma prévia de demonstração.
-                Deve ser revisado, fundamentado, assinado e autorizado
-                pela psicóloga antes de qualquer emissão.
-              </div>
-
-              <button
-                class="submit print-button"
-                @click=${() => window.print()}
-              >
-                Imprimir / Salvar em PDF
-              </button>
-
-              <button
-                class="quick-link print-button"
-                style="margin-top: 10px;"
-                @click=${() => {
-                  this.mostrarPreviaDocumento = false
-                }}
-              >
-                Voltar à edição
-              </button>
-            </article>
-          `
-        : ''}
-
-      <p class="notice">
-        Os modelos são demonstrativos. A elaboração e emissão dos documentos
-        devem respeitar as normas profissionais vigentes e a avaliação
-        técnica da psicóloga. Não há assinatura digital nesta demonstração.
-      </p>
-    `
-  }
-
-  // TELA DE PACIENTES
-  private renderPacientes() {
-    const pacientesFiltrados = this.pacientes
-      .map((paciente, index) => ({ paciente, index }))
-      .filter(({ paciente }) =>
-        paciente.nome.toLowerCase().includes(
-          this.buscaPaciente.toLowerCase(),
-        ),
-      )
-
-    const pacienteAtual =
-      this.pacienteSelecionado !== null
-        ? this.pacientes[this.pacienteSelecionado]
-        : null
-
-    return html`
-      <div class="section-heading">
-        <h2>Pacientes cadastrados</h2>
-
-        <button
-          class="quick-link"
-          style="width: auto; margin: 0;"
-          @click=${() => {
-            this.mostrarCadastro = !this.mostrarCadastro
-            this.pacienteSelecionado = null
-          }}
-        >
-          ${this.mostrarCadastro ? 'Cancelar' : '+ Novo paciente'}
-        </button>
-      </div>
-
-      ${this.mostrarCadastro
-        ? html`
-            <form class="panel" @submit=${this.cadastrarPaciente}>
-              <h3>Novo cadastro</h3>
-
-              <div class="field">
-                <label>Nome completo</label>
-                <input name="nome" type="text" required />
-              </div>
-
-              <div class="field">
-                <label>E-mail</label>
-                <input name="email" type="email" required />
-              </div>
-
-              <div class="field">
-                <label>Telefone</label>
-                <input name="telefone" type="tel" required />
-              </div>
-
-              <div class="field">
-                <label>Data de nascimento (opcional)</label>
-                <input name="nascimento" type="date" />
-              </div>
-
-              <button class="submit" type="submit">
-                Cadastrar paciente
-              </button>
-            </form>
-          `
-        : ''}
-
-      ${pacienteAtual
-        ? html`
-            <div class="panel patient-details">
-              <h3>Detalhes do paciente</h3>
-
-              <p><strong>Nome:</strong> ${pacienteAtual.nome}</p>
-              <p><strong>E-mail:</strong> ${pacienteAtual.email}</p>
-              <p><strong>Telefone:</strong> ${pacienteAtual.telefone}</p>
-              <p>
-                <strong>Nascimento:</strong>
-                ${pacienteAtual.nascimento || 'Não informado'}
-              </p>
-              <p><strong>Status:</strong> ${pacienteAtual.status}</p>
-
-              <button
-                class="quick-link"
-                @click=${() => (this.pacienteSelecionado = null)}
-              >
-                Fechar detalhes
-              </button>
+        <section class="panel">
+          <h2>Histórico de documentos</h2>
+          ${this.documentos.length ? html`
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Documento</th><th>Paciente</th><th>Data</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                  ${this.documentos.map((doc, index) => html`
+                    <tr>
+                      <td>${doc.tipo}</td>
+                      <td>${doc.paciente}</td>
+                      <td>${this.formatarData(doc.data)}</td>
+                      <td>
+                        <button class="secondary-button"
+                          @click=${() => this.visualizarDocumento(doc)}>Visualizar</button>
+                        <button class="danger-button"
+                          @click=${() => this.excluirDocumento(index)}>Excluir</button>
+                      </td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
             </div>
-          `
-        : ''}
-
-      <div class="panel" style="margin-top: 20px;">
-        <div class="field">
-          <label>Pesquisar paciente</label>
-
-          <input
-            type="search"
-            placeholder="Digite o nome do paciente..."
-            .value=${this.buscaPaciente}
-            @input=${(event: Event) =>
-              (this.buscaPaciente = (
-                event.target as HTMLInputElement
-              ).value)}
-          />
-        </div>
-
-        ${pacientesFiltrados.length === 0
-          ? html`
-              <p class="notice">
-                ${this.pacientes.length === 0
-                  ? 'Nenhum paciente cadastrado nesta demonstração.'
-                  : 'Nenhum paciente encontrado.'}
-              </p>
-            `
-          : pacientesFiltrados.map(
-              ({ paciente, index }) => html`
-                <div class="appointment">
-                  <div>
-                    <strong>${paciente.nome}</strong>
-                    <span>
-                      ${paciente.email} · ${paciente.telefone}
-                    </span>
-                  </div>
-
-                  <span class="time">${paciente.status}</span>
-
-                  <button
-                    class="quick-link"
-                    style="width: auto; margin: 0;"
-                    @click=${() => this.visualizarPaciente(index)}
-                  >
-                    Visualizar
-                  </button>
-
-                  <button
-                    class="quick-link"
-                    style="width: auto; margin: 0;"
-                    @click=${() => {
-                      if (
-                        confirm(
-                          'Deseja excluir este cadastro de demonstração?',
-                        )
-                      ) {
-                        this.excluirPaciente(index)
-                      }
-                    }}
-                  >
-                    Excluir
-                  </button>
-                </div>
-              `,
-            )}
+          ` : html`<div class="empty">Nenhum documento no histórico.</div>`}
+        </section>
       </div>
-
-      <p class="notice">
-        Demonstração temporária. Não insira dados reais de pacientes.
-      </p>
     `
   }
 
-  // TELA DE AGENDA
-  private renderAgenda() {
-    const sessoesOrdenadas = this.sessoes
-      .map((sessao, index) => ({ sessao, index }))
-      .sort((a, b) =>
-        `${a.sessao.data} ${a.sessao.horario}`.localeCompare(
-          `${b.sessao.data} ${b.sessao.horario}`,
-        ),
-      )
+  // FINANCEIRO
+  private cadastrarPagamento(event: Event) {
+    event.preventDefault()
 
-    return html`
-      <div class="section-heading">
-        <h2>Organização dos atendimentos</h2>
+    const formulario = event.target as HTMLFormElement
+    const dados = new FormData(formulario)
 
-        <button
-          class="quick-link"
-          style="width: auto; margin: 0;"
-          @click=${() => {
-            this.mostrarCadastroSessao = !this.mostrarCadastroSessao
-          }}
-        >
-          ${this.mostrarCadastroSessao ? 'Cancelar' : '+ Nova sessão'}
-        </button>
-      </div>
+    const valor = Number(
+      String(dados.get('valor') || '').replace(',', '.'),
+    )
 
-      ${this.mostrarCadastroSessao
-        ? html`
-            <form class="panel" @submit=${this.cadastrarSessao}>
-              <h3>Novo agendamento</h3>
+    const pagamento: Pagamento = {
+      paciente: String(dados.get('paciente') || ''),
+      valor,
+      data: String(dados.get('data') || ''),
+      formaPagamento: String(dados.get('formaPagamento') || ''),
+      status: String(dados.get('status') || ''),
+    }
 
-              ${this.pacientes.length === 0
-                ? html`
-                    <p class="notice">
-                      Primeiro, cadastre um paciente na seção Pacientes
-                      para conseguir criar um agendamento.
-                    </p>
+    if (
+      !pagamento.paciente ||
+      !Number.isFinite(pagamento.valor) ||
+      pagamento.valor <= 0 ||
+      !pagamento.data ||
+      !pagamento.formaPagamento ||
+      !pagamento.status
+    ) {
+      alert('Preencha todos os campos com informações válidas.')
+      return
+    }
 
-                    <button
-                      type="button"
-                      class="quick-link"
-                      @click=${() => {
-                        this.mostrarCadastroSessao = false
-                        this.mudarPagina('pacientes')
-                      }}
-                    >
-                      Ir para Pacientes
-                    </button>
-                  `
-                : html`
-                    <div class="field">
-                      <label>Paciente</label>
-
-                      <select name="paciente" required>
-                        <option value="">Selecione um paciente</option>
-
-                        ${this.pacientes.map(
-                          (paciente) => html`
-                            <option value=${paciente.nome}>
-                              ${paciente.nome}
-                            </option>
-                          `,
-                        )}
-                      </select>
-                    </div>
-
-                    <div class="field">
-                      <label>Data da sessão</label>
-                      <input name="data" type="date" required />
-                    </div>
-
-                    <div class="field">
-                      <label>Horário</label>
-                      <input name="horario" type="time" required />
-                    </div>
-
-                    <div class="field">
-                      <label>Modalidade</label>
-
-                      <select name="modalidade" required>
-                        <option value="">Selecione</option>
-                        <option value="Presencial">Presencial</option>
-                        <option value="Online">Online</option>
-                      </select>
-                    </div>
-
-                    <button class="submit" type="submit">
-                      Salvar agendamento
-                    </button>
-                  `}
-            </form>
-          `
-        : ''}
-
-      <div class="panel" style="margin-top: 20px;">
-        <h3>Atendimentos agendados</h3>
-
-        ${sessoesOrdenadas.length === 0
-          ? html`
-              <div class="empty">
-                <p>◷</p>
-                <strong>Nenhuma sessão cadastrada</strong>
-                <p>
-                  Os agendamentos aparecerão aqui depois de cadastrados.
-                </p>
-              </div>
-            `
-          : sessoesOrdenadas.map(
-              ({ sessao, index }) => html`
-                <div class="appointment">
-                  <div>
-                    <strong>${sessao.paciente}</strong>
-                    <span>
-                      ${this.formatarData(sessao.data)}
-                      · ${sessao.horario}
-                    </span>
-                    <br />
-                    <span>${sessao.modalidade}</span>
-                  </div>
-
-                  <span class="status">${sessao.status}</span>
-
-                  <div class="agenda-actions">
-                    ${sessao.status === 'Agendada'
-                      ? html`
-                          <button
-                            class="quick-link"
-                            @click=${() =>
-                              this.atualizarStatusSessao(index, 'Realizada')}
-                          >
-                            Realizada
-                          </button>
-
-                          <button
-                            class="quick-link"
-                            @click=${() =>
-                              this.atualizarStatusSessao(index, 'Cancelada')}
-                          >
-                            Cancelar
-                          </button>
-                        `
-                      : ''}
-
-                    <button
-                      class="quick-link"
-                      @click=${() => this.excluirSessao(index)}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              `,
-            )}
-      </div>
-
-      <p class="notice">
-        Esta agenda é apenas uma demonstração. Os agendamentos não são
-        salvos permanentemente e serão perdidos ao atualizar a página.
-      </p>
-    `
+    this.pagamentos = [...this.pagamentos, pagamento]
+    formulario.reset()
+    this.mostrarCadastroPagamento = false
   }
 
-  // TELA DE PRONTUÁRIOS
-  private renderProntuarios() {
-    const registrosFiltrados = this.prontuarios
-      .map((registro, index) => ({ registro, index }))
-      .filter(({ registro }) =>
-        registro.paciente.toLowerCase().includes(
-          this.buscaProntuario.toLowerCase(),
-        ),
-      )
-      .sort((a, b) =>
-        b.registro.data.localeCompare(a.registro.data),
-      )
+  private excluirPagamento(index: number) {
+    if (confirm('Deseja excluir este lançamento financeiro de demonstração?')) {
+      this.pagamentos = this.pagamentos.filter((_, i) => i !== index)
+    }
+  }
+
+  private renderFinanceiro() {
+    const recebidos = this.pagamentos
+      .filter(p => p.status === 'Pago')
+      .reduce((total, p) => total + p.valor, 0)
+
+    const pendentes = this.pagamentos
+      .filter(p => p.status === 'Pendente')
+      .reduce((total, p) => total + p.valor, 0)
 
     return html`
-      <div class="section-heading">
-        <h2>Registros e evoluções profissionais</h2>
+      <div class="page-content">
+        <section class="cards">
+          <article class="card">
+            <div class="card-label">Total recebido</div>
+            <div class="card-value">${this.formatarMoeda(recebidos)}</div>
+            <div class="card-description">Lançamentos com status pago</div>
+          </article>
+          <article class="card">
+            <div class="card-label">Valores pendentes</div>
+            <div class="card-value">${this.formatarMoeda(pendentes)}</div>
+            <div class="card-description">Lançamentos aguardando pagamento</div>
+          </article>
+          <article class="card">
+            <div class="card-label">Lançamentos</div>
+            <div class="card-value">${this.pagamentos.length}</div>
+            <div class="card-description">Registros financeiros cadastrados</div>
+          </article>
+        </section>
 
-        <button
-          class="quick-link"
-          style="width: auto; margin: 0;"
-          @click=${() => {
-            this.mostrarCadastroProntuario =
-              !this.mostrarCadastroProntuario
-          }}
-        >
-          ${this.mostrarCadastroProntuario
-            ? 'Cancelar'
-            : '+ Novo registro'}
-        </button>
-      </div>
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Financeiro</h2>
+              <p>Registre e acompanhe os pagamentos dos atendimentos.</p>
+            </div>
+            <button class="primary-button"
+              ?disabled=${this.pacientes.length === 0}
+              @click=${() => this.mostrarCadastroPagamento = !this.mostrarCadastroPagamento}>
+              + Novo lançamento
+            </button>
+          </div>
 
-      ${this.mostrarCadastroProntuario
-        ? html`
-            <form
-              class="panel"
-              @submit=${this.cadastrarProntuario}
-            >
-              <h3>Novo registro profissional</h3>
+          ${this.pacientes.length === 0 ? html`
+            <div class="notice">
+              Cadastre um paciente na seção Pacientes antes de registrar um pagamento.
+            </div>
+          ` : ''}
 
-              ${this.pacientes.length === 0
-                ? html`
-                    <p class="notice">
-                      Primeiro, cadastre um paciente na seção
-                      Pacientes para adicionar um registro.
-                    </p>
+          ${this.mostrarCadastroPagamento ? html`
+            <form @submit=${this.cadastrarPagamento}>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Paciente *</label>
+                  <select name="paciente" required>
+                    <option value="">Selecione um paciente</option>
+                    ${this.pacientes.map(p => html`
+                      <option value=${p.nome}>${p.nome}</option>
+                    `)}
+                  </select>
+                </div>
 
-                    <button
-                      type="button"
-                      class="quick-link"
-                      @click=${() => {
-                        this.mostrarCadastroProntuario = false
-                        this.mudarPagina('pacientes')
-                      }}
-                    >
-                      Ir para Pacientes
-                    </button>
-                  `
-                : html`
-                    <div class="field">
-                      <label>Paciente</label>
+                <div class="form-group">
+                  <label>Valor (R$) *</label>
+                  <input name="valor" type="number" min="0.01"
+                    step="0.01" placeholder="Ex.: 150,00" required>
+                </div>
 
-                      <select name="paciente" required>
-                        <option value="">
-                          Selecione um paciente
-                        </option>
+                <div class="form-group">
+                  <label>Data do pagamento *</label>
+                  <input name="data" type="date" required>
+                </div>
 
-                        ${this.pacientes.map(
-                          (paciente) => html`
-                            <option value=${paciente.nome}>
-                              ${paciente.nome}
-                            </option>
-                          `,
-                        )}
-                      </select>
-                    </div>
+                <div class="form-group">
+                  <label>Forma de pagamento *</label>
+                  <select name="formaPagamento" required>
+                    <option value="">Selecione</option>
+                    <option>Pix</option>
+                    <option>Dinheiro</option>
+                    <option>Cartão de crédito</option>
+                    <option>Cartão de débito</option>
+                    <option>Transferência</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
 
-                    <div class="field">
-                      <label>Data do atendimento</label>
-                      <input type="date" name="data" required />
-                    </div>
-
-                    <div class="field">
-                      <label>Registro da evolução</label>
-
-                      <textarea
-                        name="registro"
-                        placeholder="Campo demonstrativo para observações profissionais..."
-                        required
-                      ></textarea>
-                    </div>
-
-                    <button class="submit" type="submit">
-                      Salvar registro
-                    </button>
-                  `}
-            </form>
-          `
-        : ''}
-
-      <div class="panel" style="margin-top: 20px;">
-        <h3>Histórico de registros</h3>
-
-        <div class="field">
-          <label>Pesquisar por paciente</label>
-
-          <input
-            type="search"
-            placeholder="Digite o nome do paciente..."
-            .value=${this.buscaProntuario}
-            @input=${(event: Event) =>
-              (this.buscaProntuario = (
-                event.target as HTMLInputElement
-              ).value)}
-          />
-        </div>
-
-        ${registrosFiltrados.length === 0
-          ? html`
-              <div class="empty">
-                <strong>Nenhum registro encontrado</strong>
-                <p>
-                  Os registros profissionais cadastrados aparecerão
-                  nesta área.
-                </p>
+                <div class="form-group">
+                  <label>Status *</label>
+                  <select name="status" required>
+                    <option value="">Selecione</option>
+                    <option>Pago</option>
+                    <option>Pendente</option>
+                  </select>
+                </div>
               </div>
-            `
-          : registrosFiltrados.map(
-              ({ registro, index }) => html`
-                <article class="record-card">
-                  <h3>${registro.paciente}</h3>
 
-                  <div class="record-date">
-                    Atendimento em ${this.formatarData(registro.data)}
-                  </div>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">
+                  Salvar lançamento
+                </button>
+                <button class="secondary-button" type="button"
+                  @click=${() => this.mostrarCadastroPagamento = false}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ` : ''}
 
-                  <div class="record-text">${registro.registro}</div>
+          <div class="notice">
+            Os valores apresentados são registros de demonstração.
+            Confira os lançamentos antes de utilizar qualquer informação.
+          </div>
+        </section>
 
-                  <div class="agenda-actions" style="margin-top: 18px;">
-                    <button
-                      class="quick-link"
-                      style="width: auto; margin: 0;"
-                      @click=${() => this.excluirProntuario(index)}
-                    >
-                      Excluir registro
-                    </button>
-                  </div>
-                </article>
-              `,
-            )}
+        <section class="panel">
+          <h2>Histórico financeiro</h2>
+
+          ${this.pagamentos.length ? html`
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                    <th>Forma de pagamento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.pagamentos.map((pagamento, index) => html`
+                    <tr>
+                      <td>${pagamento.paciente}</td>
+                      <td>${this.formatarMoeda(pagamento.valor)}</td>
+                      <td>${this.formatarData(pagamento.data)}</td>
+                      <td>${pagamento.formaPagamento}</td>
+                      <td>
+                        <span class="status ${this.classeStatus(pagamento.status)}">
+                          ${pagamento.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="danger-button"
+                          @click=${() => this.excluirPagamento(index)}>
+                          Excluir
+                        </button>
+                      </td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+            </div>
+          ` : html`
+            <div class="empty">Nenhum lançamento financeiro cadastrado.</div>
+          `}
+        </section>
       </div>
-
-      <p class="notice">
-        Demonstração de interface. Os registros são temporários e
-        não possuem armazenamento seguro. Não insira informações
-        reais ou dados pessoais de pacientes.
-      </p>
     `
   }
 
   // VISÃO GERAL
   private renderVisaoGeral() {
+    const recebidos = this.pagamentos
+      .filter(p => p.status === 'Pago')
+      .reduce((total, p) => total + p.valor, 0)
+
     return html`
-      <section class="welcome">
-        <h2>Bem-vinda, Alessandra! 💜</h2>
-        <p>
-          Este é o seu espaço de organização profissional.
-          Acompanhe sua agenda e gerencie suas atividades em um só lugar.
-        </p>
-      </section>
+      <div class="page-content">
+        <section class="cards">
+          <article class="card">
+            <div class="card-label">Pacientes cadastrados</div>
+            <div class="card-value">${this.pacientes.length}</div>
+            <div class="card-description">Total de cadastros</div>
+          </article>
 
-      <div class="section-heading">
-        <h2>Resumo geral</h2>
-      </div>
+          <article class="card">
+            <div class="card-label">Atendimentos agendados</div>
+            <div class="card-value">
+              ${this.sessoes.filter(s => s.status === 'Agendada').length}
+            </div>
+            <div class="card-description">Sessões com status agendada</div>
+          </article>
 
-      <section class="cards">
-        <article class="card">
-          <div class="card-label">Pacientes cadastrados</div>
-          <div class="card-number">${this.pacientes.length}</div>
-          <div class="card-description">Cadastros nesta demonstração</div>
-        </article>
+          <article class="card">
+            <div class="card-label">Documentos preparados</div>
+            <div class="card-value">${this.documentos.length}</div>
+            <div class="card-description">Documentos no histórico</div>
+          </article>
+        </section>
 
-        <article class="card">
-          <div class="card-label">Sessões cadastradas</div>
-          <div class="card-number">${this.sessoes.length}</div>
-          <div class="card-description">Agendamentos nesta demonstração</div>
-        </article>
+        <section class="cards">
+          <article class="card">
+            <div class="card-label">Registros clínicos</div>
+            <div class="card-value">${this.prontuarios.length}</div>
+            <div class="card-description">Prontuários cadastrados</div>
+          </article>
 
-        <article class="card">
-          <div class="card-label">Documentos preparados</div>
-          <div class="card-number">--</div>
-          <div class="card-description">Pré-visualizações não são armazenadas</div>
-        </article>
-      </section>
+          <article class="card">
+            <div class="card-label">Pagamentos recebidos</div>
+            <div class="card-value" style="font-size: 21px">
+              ${this.formatarMoeda(recebidos)}
+            </div>
+            <div class="card-description">Total dos lançamentos pagos</div>
+          </article>
 
-      <section class="content-grid">
-        <div class="panel">
-          <h3>Próximos atendimentos</h3>
+          <article class="card">
+            <div class="card-label">Lançamentos financeiros</div>
+            <div class="card-value">${this.pagamentos.length}</div>
+            <div class="card-description">Registros cadastrados</div>
+          </article>
+        </section>
 
-          ${this.sessoes.length === 0
-            ? html`
-                <div class="appointment">
-                  <div>
-                    <strong>Agenda não configurada</strong>
-                    <span>Os atendimentos aparecerão aqui.</span>
-                  </div>
-                </div>
-              `
-            : this.sessoes
-                .filter((sessao) => sessao.status === 'Agendada')
-                .slice()
-                .sort((a, b) =>
-                  `${a.data} ${a.horario}`.localeCompare(
-                    `${b.data} ${b.horario}`,
-                  ),
-                )
-                .slice(0, 3)
-                .map(
-                  (sessao) => html`
-                    <div class="appointment">
-                      <div>
-                        <strong>${sessao.paciente}</strong>
-                        <span>
-                          ${this.formatarData(sessao.data)}
-                          · ${sessao.modalidade}
-                        </span>
-                      </div>
-
-                      <span class="time">${sessao.horario}</span>
-                    </div>
-                  `,
-                )}
-
-          <p class="notice">
-            Os dados exibidos são registros temporários desta demonstração.
+        <section class="panel">
+          <h2>Bem-vinda ao painel!</h2>
+          <p style="color: #887b8b; line-height: 1.7">
+            Aqui você pode acompanhar os cadastros, organizar os atendimentos,
+            consultar registros, preparar documentos e visualizar os lançamentos
+            financeiros.
           </p>
-        </div>
-
-        <div class="panel">
-          <h3>Acesso rápido</h3>
-
-          <button
-            class="quick-link"
-            @click=${() => this.mudarPagina('pacientes')}
-          >
-            + Gerenciar pacientes
-          </button>
-
-          <button
-            class="quick-link"
-            @click=${() => this.mudarPagina('agenda')}
-          >
-            ◷ Organizar agenda
-          </button>
-
-          <button
-            class="quick-link"
-            @click=${() => this.mudarPagina('prontuarios')}
-          >
-            ▤ Acessar prontuários
-          </button>
-
-          <button
-            class="quick-link"
-            @click=${() => this.mudarPagina('documentos')}
-          >
-            ▤ Acessar documentos
-          </button>
-        </div>
-      </section>
+          <div class="notice">
+            Este painel é uma demonstração. Os dados ficam somente na memória
+            durante o uso e são perdidos ao atualizar ou fechar a página.
+            Não utilize informações reais de pacientes.
+          </div>
+        </section>
+      </div>
     `
   }
 
-  // CONTROLE DAS PÁGINAS
   private renderPagina() {
-    if (this.paginaAtual === 'pacientes') {
-      return this.renderPacientes()
+    switch (this.paginaAtual) {
+      case 'pacientes':
+        return this.renderPacientes()
+      case 'agenda':
+        return this.renderAgenda()
+      case 'prontuarios':
+        return this.renderProntuarios()
+      case 'documentos':
+        return this.renderDocumentos()
+      case 'financeiro':
+        return this.renderFinanceiro()
+      default:
+        return this.renderVisaoGeral()
     }
-
-    if (this.paginaAtual === 'agenda') {
-      return this.renderAgenda()
-    }
-
-    if (this.paginaAtual === 'prontuarios') {
-      return this.renderProntuarios()
-    }
-
-    if (this.paginaAtual === 'documentos') {
-      return this.renderDocumentos()
-    }
-
-    if (this.paginaAtual === 'financeiro') {
-      return html`
-        <section class="placeholder">
-          <h2>Financeiro</h2>
-          <p>
-            Acompanhe os registros financeiros e pagamentos dos atendimentos.
-          </p>
-          <p>Esta seção será desenvolvida em uma próxima etapa.</p>
-        </section>
-      `
-    }
-
-    return this.renderVisaoGeral()
   }
 
-  // RENDERIZAÇÃO PRINCIPAL
   render() {
+    const pagina = this.menuItems.find(item => item.id === this.paginaAtual)
+
     return html`
       <div class="layout">
         <aside class="sidebar">
-          <img
-            class="logo"
-            src="/logo-ale.jpeg"
-            alt="Alessandra Larissa - Psicóloga"
-          />
+          <div class="brand">
+            <img src="/logo-ale.jpeg" alt="Logo">
+            <div>
+              <strong>Alessandra Larissa</strong>
+              <span>Painel da Psicóloga</span>
+            </div>
+          </div>
 
-          <p class="menu-title">Menu principal</p>
+          <div class="menu-label">Menu principal</div>
 
           <nav class="menu">
-            ${this.menuItems.map(
-              (item) => html`
-                <button
-                  class=${this.paginaAtual === item.id ? 'active' : ''}
-                  @click=${() => this.mudarPagina(item.id)}
-                >
-                  ${item.label}
-                </button>
-              `,
-            )}
+            ${this.menuItems.map(item => html`
+              <button
+                class=${this.paginaAtual === item.id ? 'active' : ''}
+                @click=${() => this.navegar(item.id)}>
+                <span>${item.icone}</span>
+                ${item.nome}
+              </button>
+            `)}
           </nav>
-
-          <div class="sidebar-bottom">
-            <a class="back-link" href="/">← Voltar ao site</a>
-            <a class="back-link" href="/login.html">
-              Sair da demonstração
-            </a>
-          </div>
         </aside>
 
         <main class="main">
           <header class="topbar">
             <div>
-              <h1>
-                ${this.menuItems.find(
-                  (item) => item.id === this.paginaAtual,
-                )?.label || 'Painel administrativo'}
-              </h1>
-
-              <p class="subtitle">Gestão do espaço profissional</p>
+              <h1>${pagina?.nome || 'Visão geral'}</h1>
+              <p>Bem-vinda ao seu espaço de gestão profissional.</p>
             </div>
 
             <div class="profile">
-              <div class="avatar">AL</div>
-
-              <div>
-                <strong>Alessandra Larissa</strong>
-                <span>Psicóloga</span>
-              </div>
+              <div class="profile-avatar">AL</div>
+              <span>Psicóloga</span>
             </div>
           </header>
 
-          ${this.paginaAtual === 'visao-geral'
-            ? this.renderVisaoGeral()
-            : this.renderPagina()}
+          ${this.renderPagina()}
         </main>
       </div>
     `
