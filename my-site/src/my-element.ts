@@ -266,7 +266,7 @@ export class MyElement extends LitElement {
           <a href="#sobre">Sobre</a>
           <a href="#servicos">Atendimentos</a>
           <a href="contato.html">Contato</a>
-          <a class="login" href="login.html">Entrar</a>
+         <a class="login" href="/login.html">Entrar</a>
         </nav>
       </header>
 
@@ -284,9 +284,9 @@ export class MyElement extends LitElement {
               emocional, respeitando sua individualidade e seu tempo.
             </p>
 
-            <a class="cta" href="contato.html">
-              Conheça os atendimentos
-            </a>
+            <a class="cta" href="/login.html">
+  Acesse sua área
+</a>
           </div>
 
           <div class="image-placeholder">
