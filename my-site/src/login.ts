@@ -173,6 +173,7 @@ export class LoginPage extends LitElement {
       color: #806483;
       font-size: 13px;
       line-height: 1.5;
+      overflow-wrap: anywhere;
     }
 
     .voltar {
@@ -222,6 +223,18 @@ export class LoginPage extends LitElement {
     this.mensagem = ''
   }
 
+  private obterMensagemErro(error: unknown): string {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error
+    ) {
+      return String(error.message)
+    }
+
+    return 'Ocorreu um erro inesperado. Tente novamente.'
+  }
+
   private async verificarRecuperacao() {
     const url = new URL(window.location.href)
 
@@ -256,9 +269,13 @@ export class LoginPage extends LitElement {
     }
 
     try {
+      // O Supabase processa o código de recuperação da URL
+      // durante a inicialização da autenticação.
       const { data, error } = await supabase.auth.getSession()
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       if (data.session) {
         this.ativarModoNovaSenha()
@@ -270,7 +287,7 @@ export class LoginPage extends LitElement {
       console.error('Erro ao verificar recuperação:', error)
 
       this.mensagem =
-        'Não foi possível validar o link. Solicite uma nova recuperação de senha.'
+        `Erro ao validar o link: ${this.obterMensagemErro(error)}`
     }
   }
 
@@ -285,11 +302,16 @@ export class LoginPage extends LitElement {
     this.mensagem = ''
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login.html?mode=recovery`
-      })
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/login.html?mode=recovery`
+        }
+      )
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       this.mensagem =
         'Enviamos um link de recuperação para seu e-mail. Verifique também a caixa de spam.'
@@ -297,7 +319,7 @@ export class LoginPage extends LitElement {
       console.error('Erro ao solicitar recuperação:', error)
 
       this.mensagem =
-        'Não foi possível enviar o e-mail. Tente novamente mais tarde.'
+        `Erro ao enviar e-mail: ${this.obterMensagemErro(error)}`
     } finally {
       this.carregando = false
     }
@@ -326,7 +348,12 @@ export class LoginPage extends LitElement {
     this.mensagem = ''
 
     try {
-      const { data: sessao } = await supabase.auth.getSession()
+      const { data: sessao, error: erroSessao } =
+        await supabase.auth.getSession()
+
+      if (erroSessao) {
+        throw erroSessao
+      }
 
       if (!sessao.session) {
         throw new Error('Sessão de recuperação não encontrada.')
@@ -336,7 +363,9 @@ export class LoginPage extends LitElement {
         password: senha
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       await supabase.auth.signOut()
 
@@ -346,10 +375,10 @@ export class LoginPage extends LitElement {
       this.mensagem =
         'Senha atualizada com sucesso! Agora entre com sua nova senha.'
     } catch (error) {
-      console.error('Erro ao atualizar senha:', error)
+      console.error('Erro ao salvar nova senha:', error)
 
       this.mensagem =
-        'Não foi possível atualizar a senha. Solicite um novo link de recuperação.'
+        `Erro ao atualizar senha: ${this.obterMensagemErro(error)}`
     } finally {
       this.carregando = false
     }
@@ -379,7 +408,9 @@ export class LoginPage extends LitElement {
         password: senha
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       window.location.href = '/painel-psicologa.html'
     } catch (error) {
