@@ -11,6 +11,8 @@ export class LoginPage extends LitElement {
   @state() private modoRecuperacao = false
   @state() private modoNovaSenha = false
 
+  private authSubscription?: { unsubscribe: () => void }
+
   static styles = css`
     :host {
       display: block;
@@ -196,24 +198,80 @@ export class LoginPage extends LitElement {
 
   connectedCallback() {
     super.connectedCallback()
-    this.verificarRecuperacao()
+
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        this.ativarModoNovaSenha()
+      }
+    })
+
+    this.authSubscription = data.subscription
+
+    void this.verificarRecuperacao()
+  }
+
+  disconnectedCallback() {
+    this.authSubscription?.unsubscribe()
+    super.disconnectedCallback()
+  }
+
+  private ativarModoNovaSenha() {
+    this.modoNovaSenha = true
+    this.modoRecuperacao = false
+    this.userType = 'psicologa'
+    this.mensagem = ''
   }
 
   private async verificarRecuperacao() {
-    const hash = window.location.hash
+    const url = new URL(window.location.href)
 
-    if (hash.includes('type=recovery')) {
-      this.modoNovaSenha = true
-      this.userType = 'psicologa'
+    const parametrosHash = new URLSearchParams(
+      url.hash.replace(/^#/, '')
+    )
+
+    const recuperacaoPorHash =
+      parametrosHash.get('type') === 'recovery'
+
+    const recuperacaoPorParametro =
+      url.searchParams.get('mode') === 'recovery'
+
+    const possuiCodigo = url.searchParams.has('code')
+
+    const possuiErro =
+      parametrosHash.has('error') ||
+      url.searchParams.has('error')
+
+    if (possuiErro) {
+      this.mensagem =
+        'O link de recuperação expirou ou é inválido. Solicite um novo link.'
+      return
     }
 
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        this.modoNovaSenha = true
-        this.userType = 'psicologa'
-        this.mensagem = ''
+    if (
+      !recuperacaoPorHash &&
+      !recuperacaoPorParametro &&
+      !possuiCodigo
+    ) {
+      return
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error) throw error
+
+      if (data.session) {
+        this.ativarModoNovaSenha()
+      } else {
+        this.mensagem =
+          'Não foi possível validar o link. Solicite uma nova recuperação de senha.'
       }
-    })
+    } catch (error) {
+      console.error('Erro ao verificar recuperação:', error)
+
+      this.mensagem =
+        'Não foi possível validar o link. Solicite uma nova recuperação de senha.'
+    }
   }
 
   private async solicitarRecuperacao(event: Event) {
@@ -228,15 +286,18 @@ export class LoginPage extends LitElement {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login.html`
+        redirectTo: `${window.location.origin}/login.html?mode=recovery`
       })
 
       if (error) throw error
 
-      this.mensagem = 'Enviamos um link de recuperação para seu e-mail. Verifique também a caixa de spam.'
+      this.mensagem =
+        'Enviamos um link de recuperação para seu e-mail. Verifique também a caixa de spam.'
     } catch (error) {
-      console.error(error)
-      this.mensagem = 'Não foi possível enviar o e-mail. Tente novamente.'
+      console.error('Erro ao solicitar recuperação:', error)
+
+      this.mensagem =
+        'Não foi possível enviar o e-mail. Tente novamente mais tarde.'
     } finally {
       this.carregando = false
     }
@@ -247,6 +308,7 @@ export class LoginPage extends LitElement {
 
     const form = event.currentTarget as HTMLFormElement
     const dados = new FormData(form)
+
     const senha = String(dados.get('password') || '')
     const confirmar = String(dados.get('confirmar') || '')
 
@@ -264,6 +326,12 @@ export class LoginPage extends LitElement {
     this.mensagem = ''
 
     try {
+      const { data: sessao } = await supabase.auth.getSession()
+
+      if (!sessao.session) {
+        throw new Error('Sessão de recuperação não encontrada.')
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: senha
       })
@@ -274,10 +342,14 @@ export class LoginPage extends LitElement {
 
       this.modoNovaSenha = false
       this.modoRecuperacao = false
-      this.mensagem = 'Senha atualizada com sucesso! Agora entre com sua nova senha.'
+
+      this.mensagem =
+        'Senha atualizada com sucesso! Agora entre com sua nova senha.'
     } catch (error) {
-      console.error(error)
-      this.mensagem = 'Não foi possível atualizar a senha. Solicite um novo link de recuperação.'
+      console.error('Erro ao atualizar senha:', error)
+
+      this.mensagem =
+        'Não foi possível atualizar a senha. Solicite um novo link de recuperação.'
     } finally {
       this.carregando = false
     }
@@ -287,7 +359,8 @@ export class LoginPage extends LitElement {
     event.preventDefault()
 
     if (this.userType !== 'psicologa') {
-      this.mensagem = 'A área do paciente ainda não está disponível.'
+      this.mensagem =
+        'A área do paciente ainda não está disponível.'
       return
     }
 
@@ -311,7 +384,9 @@ export class LoginPage extends LitElement {
       window.location.href = '/painel-psicologa.html'
     } catch (error) {
       console.error('Erro no login:', error)
-      this.mensagem = 'E-mail ou senha incorretos. Verifique seus dados.'
+
+      this.mensagem =
+        'E-mail ou senha incorretos. Verifique seus dados.'
     } finally {
       this.carregando = false
     }
@@ -326,7 +401,10 @@ export class LoginPage extends LitElement {
     return html`
       <main>
         <section>
-          <img src="/logo-ale.jpeg" alt="Alessandra Larissa Psicóloga">
+          <img
+            src="/logo-ale.jpeg"
+            alt="Alessandra Larissa Psicóloga"
+          >
 
           <h1>
             ${this.modoNovaSenha
@@ -344,112 +422,166 @@ export class LoginPage extends LitElement {
                 : 'Acesse seu espaço de cuidado, acolhimento e acompanhamento.'}
           </p>
 
-          ${!this.modoNovaSenha && !this.modoRecuperacao ? html`
-            <div class="tipo-usuario">
-              <button
-                type="button"
-                class="tipo-btn ${this.userType === 'paciente' ? 'ativo' : ''}"
-                @click=${() => this.selectUser('paciente')}
-              >
-                ♡ Sou paciente
-              </button>
+          ${!this.modoNovaSenha && !this.modoRecuperacao
+            ? html`
+                <div class="tipo-usuario">
+                  <button
+                    type="button"
+                    class="tipo-btn ${this.userType === 'paciente' ? 'ativo' : ''}"
+                    @click=${() => this.selectUser('paciente')}
+                  >
+                    ♡ Sou paciente
+                  </button>
 
-              <button
-                type="button"
-                class="tipo-btn ${this.userType === 'psicologa' ? 'ativo' : ''}"
-                @click=${() => this.selectUser('psicologa')}
-              >
-                ✿ Sou psicóloga
-              </button>
-            </div>
-          ` : ''}
+                  <button
+                    type="button"
+                    class="tipo-btn ${this.userType === 'psicologa' ? 'ativo' : ''}"
+                    @click=${() => this.selectUser('psicologa')}
+                  >
+                    ✿ Sou psicóloga
+                  </button>
+                </div>
+              `
+            : ''}
 
-          ${this.modoNovaSenha ? html`
-            <form @submit=${this.salvarNovaSenha}>
-              <label>Nova senha</label>
-              <input
-                class="campo"
-                type="password"
-                name="password"
-                placeholder="Digite a nova senha"
-                required
-                minlength="8"
-              >
+          ${this.modoNovaSenha
+            ? html`
+                <form @submit=${this.salvarNovaSenha}>
+                  <label>Nova senha</label>
 
-              <label>Confirme a nova senha</label>
-              <input
-                class="campo"
-                type="password"
-                name="confirmar"
-                placeholder="Digite novamente"
-                required
-                minlength="8"
-              >
+                  <input
+                    class="campo"
+                    type="password"
+                    name="password"
+                    placeholder="Digite a nova senha"
+                    autocomplete="new-password"
+                    required
+                    minlength="8"
+                  >
 
-              <button class="botao-principal" type="submit" ?disabled=${this.carregando}>
-                ${this.carregando ? 'Salvando...' : 'Salvar nova senha'}
-              </button>
-            </form>
-          ` : this.modoRecuperacao ? html`
-            <form @submit=${this.solicitarRecuperacao}>
-              <label>E-mail</label>
-              <input
-                class="campo"
-                type="email"
-                name="email"
-                placeholder="Seu e-mail"
-                required
-              >
+                  <label>Confirme a nova senha</label>
 
-              <button class="botao-principal" type="submit" ?disabled=${this.carregando}>
-                ${this.carregando ? 'Enviando...' : 'Enviar link de recuperação'}
-              </button>
-            </form>
-          ` : html`
-            <form @submit=${this.handleSubmit}>
-              <label>E-mail</label>
-              <input
-                class="campo"
-                type="email"
-                name="email"
-                placeholder="Seu e-mail"
-                required
-              >
+                  <input
+                    class="campo"
+                    type="password"
+                    name="confirmar"
+                    placeholder="Digite novamente"
+                    autocomplete="new-password"
+                    required
+                    minlength="8"
+                  >
 
-              <label>Senha</label>
-              <input
-                class="campo"
-                type="password"
-                name="password"
-                placeholder="Sua senha"
-                required
-              >
+                  <button
+                    class="botao-principal"
+                    type="submit"
+                    ?disabled=${this.carregando}
+                  >
+                    ${this.carregando
+                      ? 'Salvando...'
+                      : 'Salvar nova senha'}
+                  </button>
+                </form>
+              `
+            : this.modoRecuperacao
+              ? html`
+                  <form @submit=${this.solicitarRecuperacao}>
+                    <label>E-mail</label>
 
-              <button class="botao-principal" type="submit" ?disabled=${this.carregando}>
-                ${this.carregando ? 'Entrando...' : 'Entrar na minha conta'}
-              </button>
-            </form>
+                    <input
+                      class="campo"
+                      type="email"
+                      name="email"
+                      placeholder="Seu e-mail"
+                      autocomplete="email"
+                      required
+                    >
 
-            <div class="links">
-              <a href="#" @click=${(e: Event) => {
-                e.preventDefault()
-                this.modoRecuperacao = true
-                this.mensagem = ''
-              }}>
-                Esqueci minha senha
-              </a>
+                    <button
+                      class="botao-principal"
+                      type="submit"
+                      ?disabled=${this.carregando}
+                    >
+                      ${this.carregando
+                        ? 'Enviando...'
+                        : 'Enviar link de recuperação'}
+                    </button>
+                  </form>
 
-              <a href="/cadastro.html">
-                Ainda não tem conta? Criar minha conta
-              </a>
-            </div>
-          `}
+                  <div class="links">
+                    <a
+                      href="#"
+                      @click=${(e: Event) => {
+                        e.preventDefault()
+                        this.modoRecuperacao = false
+                        this.mensagem = ''
+                      }}
+                    >
+                      Voltar para o login
+                    </a>
+                  </div>
+                `
+              : html`
+                  <form @submit=${this.handleSubmit}>
+                    <label>E-mail</label>
 
-          ${this.mensagem ? html`
-            <p class="mensagem">${this.mensagem}</p>
-          ` : ''}
+                    <input
+                      class="campo"
+                      type="email"
+                      name="email"
+                      placeholder="Seu e-mail"
+                      autocomplete="username"
+                      required
+                    >
 
-          <a class="voltar" href="/">← Voltar para o início</a>
+                    <label>Senha</label>
+
+                    <input
+                      class="campo"
+                      type="password"
+                      name="password"
+                      placeholder="Sua senha"
+                      autocomplete="current-password"
+                      required
+                    >
+
+                    <button
+                      class="botao-principal"
+                      type="submit"
+                      ?disabled=${this.carregando}
+                    >
+                      ${this.carregando
+                        ? 'Entrando...'
+                        : 'Entrar na minha conta'}
+                    </button>
+                  </form>
+
+                  <div class="links">
+                    <a
+                      href="#"
+                      @click=${(e: Event) => {
+                        e.preventDefault()
+                        this.modoRecuperacao = true
+                        this.mensagem = ''
+                      }}
+                    >
+                      Esqueci minha senha
+                    </a>
+
+                    <a href="/cadastro.html">
+                      Ainda não tem conta? Criar minha conta
+                    </a>
+                  </div>
+                `}
+
+          ${this.mensagem
+            ? html`
+                <p class="mensagem">${this.mensagem}</p>
+              `
+            : ''}
+
+          <a class="voltar" href="/">
+            ← Voltar para o início
+          </a>
         </section>
       </main>
     `
