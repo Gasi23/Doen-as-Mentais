@@ -1,6 +1,7 @@
 
 import { LitElement, css, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
+import { supabase } from './supabase'
 
 interface Paciente {
   nome: string
@@ -41,6 +42,12 @@ interface Pagamento {
 
 @customElement('painel-psicologa')
 export class PainelPsicologa extends LitElement {
+    @state()
+  private autenticado = false
+
+  @state()
+  private verificandoAcesso = true
+
   @state()
   private paginaAtual = 'visao-geral'
 
@@ -224,6 +231,21 @@ export class PainelPsicologa extends LitElement {
       font-size: 13px;
       color: #806483;
     }
+
+.btn-sair {
+  border: 1px solid #e7d6e9;
+  background: #fff;
+  color: #806483;
+  padding: 9px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+.btn-sair:hover {
+  background: #f4eaf5;
+}
 
     .profile-avatar {
       width: 38px;
@@ -1433,7 +1455,52 @@ export class PainelPsicologa extends LitElement {
     }
   }
 
+private async sair() {
+  try {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      throw error
+    }
+
+    window.location.replace('/login.html')
+  } catch (error) {
+    console.error('Erro ao sair:', error)
+    window.alert('Não foi possível encerrar a sessão. Tente novamente.')
+  }
+}
+
+  connectedCallback() {
+  super.connectedCallback()
+  this.verificarAcesso()
+}
+
+private async verificarAcesso() {
+  try {
+    const { data, error } = await supabase.auth.getSession()
+
+    if (error || !data.session) {
+      window.location.replace('/login.html')
+      return
+    }
+
+    this.autenticado = true
+  } catch (error) {
+    console.error('Erro ao verificar acesso:', error)
+    window.location.replace('/login.html')
+  } finally {
+    this.verificandoAcesso = false
+  }
+}
+
   render() {
+        if (this.verificandoAcesso) {
+      return html`<p>Verificando acesso...</p>`
+    }
+
+    if (!this.autenticado) {
+      return html``
+    }
     const pagina = this.menuItems.find(item => item.id === this.paginaAtual)
 
     return html`
@@ -1469,9 +1536,16 @@ export class PainelPsicologa extends LitElement {
             </div>
 
             <div class="profile">
-              <div class="profile-avatar">AL</div>
-              <span>Psicóloga</span>
-            </div>
+  <div class="profile-avatar">AL</div>
+  <span>Psicóloga</span>
+
+  <button
+    class="btn-sair"
+    @click=${this.sair}
+  >
+    Sair
+  </button>
+</div>
           </header>
 
           ${this.renderPagina()}
