@@ -4,6 +4,7 @@ import { customElement, state } from 'lit/decorators.js'
 import { supabase } from './supabase'
 
 interface Paciente {
+  id: string
   nome: string
   email: string
   telefone: string
@@ -60,6 +61,31 @@ export class PainelPsicologa extends LitElement {
 
   @state()
   private pacientes: Paciente[] = []
+
+  private async carregarPacientes() {
+  try {
+    const { data, error } = await supabase
+      .from('pacientes')
+      .select('id, nome, email, telefone, data_nascimento')
+      .order('criado_em', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    this.pacientes = (data || []).map(paciente => ({
+      id: paciente.id,
+      nome: paciente.nome,
+      email: paciente.email || '',
+      telefone: paciente.telefone || '',
+      nascimento: paciente.data_nascimento || '',
+      status: 'Ativo',
+    }))
+  } catch (error) {
+    console.error('Erro ao carregar pacientes:', error)
+    window.alert('Não foi possível carregar os pacientes.')
+  }
+}
 
   // AGENDA
   @state()
@@ -634,35 +660,86 @@ export class PainelPsicologa extends LitElement {
   }
 
   // PACIENTES
-  private cadastrarPaciente(event: Event) {
-    event.preventDefault()
+  
+private async cadastrarPaciente(event: Event) {
+  event.preventDefault()
 
-    const formulario = event.target as HTMLFormElement
-    const dados = new FormData(formulario)
+  const formulario = event.currentTarget as HTMLFormElement
+  const dados = new FormData(formulario)
 
-    const paciente: Paciente = {
-      nome: String(dados.get('nome') || ''),
-      email: String(dados.get('email') || ''),
-      telefone: String(dados.get('telefone') || ''),
-      nascimento: String(dados.get('nascimento') || ''),
-      status: String(dados.get('status') || 'Ativo'),
+  const novoPaciente = {
+    nome: String(dados.get('nome') || '').trim(),
+    email: String(dados.get('email') || '').trim(),
+    telefone: String(dados.get('telefone') || '').trim(),
+    data_nascimento: String(dados.get('nascimento') || '') || null,
+  }
+
+  if (!novoPaciente.nome) {
+    window.alert('Informe o nome do paciente.')
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('pacientes')
+      .insert(novoPaciente)
+      .select('id, nome, email, telefone, data_nascimento')
+      .single()
+
+    if (error) {
+      throw error
     }
 
-    if (!paciente.nome.trim()) {
-      alert('Informe o nome do paciente.')
-      return
+    const paciente: Paciente = {
+      id: data.id,
+      nome: data.nome,
+      email: data.email || '',
+      telefone: data.telefone || '',
+      nascimento: data.data_nascimento || '',
+      status: 'Ativo',
     }
 
     this.pacientes = [...this.pacientes, paciente]
+
     formulario.reset()
     this.mostrarCadastro = false
+
+    window.alert('Paciente cadastrado com sucesso!')
+  } catch (error) {
+    console.error('Erro ao cadastrar paciente:', error)
+    window.alert('Não foi possível cadastrar o paciente. Tente novamente.')
+  }
+}
+
+  private async excluirPaciente(index: number) {
+  const paciente = this.pacientes[index]
+
+  if (!paciente) return
+
+  if (!confirm(`Deseja excluir o paciente ${paciente.nome}?`)) {
+    return
   }
 
-  private excluirPaciente(index: number) {
-    if (confirm('Deseja excluir este paciente de demonstração?')) {
-      this.pacientes = this.pacientes.filter((_, i) => i !== index)
+  try {
+    const { error } = await supabase
+      .from('pacientes')
+      .delete()
+      .eq('id', paciente.id)
+
+    if (error) {
+      throw error
     }
+
+    this.pacientes = this.pacientes.filter(
+      p => p.id !== paciente.id
+    )
+
+    window.alert('Paciente excluído com sucesso!')
+  } catch (error) {
+    console.error('Erro ao excluir paciente:', error)
+    window.alert('Não foi possível excluir o paciente.')
   }
+}
 
   private renderPacientes() {
     const filtrados = this.pacientes.filter(p =>
@@ -1484,6 +1561,7 @@ private async verificarAcesso() {
       return
     }
 
+       await this.carregarPacientes()
     this.autenticado = true
   } catch (error) {
     console.error('Erro ao verificar acesso:', error)
