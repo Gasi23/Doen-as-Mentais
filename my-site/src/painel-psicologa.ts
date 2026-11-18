@@ -60,6 +60,9 @@ export class PainelPsicologa extends LitElement {
   private mostrarCadastro = false
 
   @state()
+private pacienteEditando: Paciente | null = null
+
+  @state()
   private pacientes: Paciente[] = []
 
   private async carregarPacientes() {
@@ -711,6 +714,69 @@ private async cadastrarPaciente(event: Event) {
   }
 }
 
+private editarPaciente(paciente: Paciente) {
+  this.pacienteEditando = paciente
+  this.mostrarCadastro = true
+}
+
+private async atualizarPaciente(event: Event) {
+  event.preventDefault()
+
+  const pacienteAtual = this.pacienteEditando
+
+  if (!pacienteAtual) return
+
+  const formulario = event.currentTarget as HTMLFormElement
+  const dados = new FormData(formulario)
+
+  const atualizacao = {
+    nome: String(dados.get('nome') || '').trim(),
+    email: String(dados.get('email') || '').trim(),
+    telefone: String(dados.get('telefone') || '').trim(),
+    data_nascimento: String(dados.get('nascimento') || '') || null,
+  }
+
+  if (!atualizacao.nome) {
+    window.alert('Informe o nome do paciente.')
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('pacientes')
+      .update(atualizacao)
+      .eq('id', pacienteAtual.id)
+      .select('id, nome, email, telefone, data_nascimento')
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    const pacienteAtualizado: Paciente = {
+      id: data.id,
+      nome: data.nome,
+      email: data.email || '',
+      telefone: data.telefone || '',
+      nascimento: data.data_nascimento || '',
+      status: pacienteAtual.status,
+    }
+
+    this.pacientes = this.pacientes.map(p =>
+      p.id === pacienteAtual.id ? pacienteAtualizado : p
+    )
+
+    formulario.reset()
+    this.pacienteEditando = null
+    this.mostrarCadastro = false
+
+    window.alert('Paciente atualizado com sucesso!')
+  } catch (error) {
+    console.error('Erro ao atualizar paciente:', error)
+    window.alert('Não foi possível atualizar o paciente.')
+  }
+}
+
   private async excluirPaciente(index: number) {
   const paciente = this.pacientes[index]
 
@@ -755,29 +821,51 @@ private async cadastrarPaciente(event: Event) {
               <p>Gerencie os cadastros de pacientes.</p>
             </div>
             <button class="primary-button"
-              @click=${() => this.mostrarCadastro = !this.mostrarCadastro}>
-              ${this.mostrarCadastro ? 'Fechar cadastro' : '+ Novo paciente'}
-            </button>
+  @click=${() => {
+    this.mostrarCadastro = !this.mostrarCadastro
+    this.pacienteEditando = null
+  }}>
+  ${this.mostrarCadastro ? 'Fechar cadastro' : '+ Novo paciente'}
+</button>
           </div>
 
           ${this.mostrarCadastro ? html`
-            <form @submit=${this.cadastrarPaciente}>
+            <h3>${this.pacienteEditando ? 'Editar paciente' : 'Novo paciente'}</h3>
+           <form @submit=${this.pacienteEditando ? this.atualizarPaciente : this.cadastrarPaciente}>
               <div class="form-grid">
                 <div class="form-group">
                   <label>Nome completo *</label>
-                  <input name="nome" required placeholder="Nome do paciente">
+                  <input
+  name="nome"
+  required
+  placeholder="Nome do paciente"
+  .value=${this.pacienteEditando?.nome || ''}
+>
                 </div>
                 <div class="form-group">
                   <label>E-mail</label>
-                  <input name="email" type="email" placeholder="E-mail">
+                 <input
+  name="email"
+  type="email"
+  placeholder="E-mail"
+  .value=${this.pacienteEditando?.email || ''}
+>
                 </div>
                 <div class="form-group">
                   <label>Telefone</label>
-                  <input name="telefone" placeholder="(00) 00000-0000">
+                  <input
+  name="telefone"
+  placeholder="(00) 00000-0000"
+  .value=${this.pacienteEditando?.telefone || ''}
+>
                 </div>
                 <div class="form-group">
                   <label>Data de nascimento</label>
-                  <input name="nascimento" type="date">
+                 <input
+  name="nascimento"
+  type="date"
+  .value=${this.pacienteEditando?.nascimento || ''}
+>
                 </div>
                 <div class="form-group">
                   <label>Status</label>
@@ -788,9 +876,14 @@ private async cadastrarPaciente(event: Event) {
                 </div>
               </div>
               <div class="form-actions">
-                <button class="primary-button" type="submit">Salvar paciente</button>
+                <button class="primary-button" type="submit">
+  ${this.pacienteEditando ? 'Salvar alterações' : 'Salvar paciente'}
+</button>
                 <button class="secondary-button" type="button"
-                  @click=${() => this.mostrarCadastro = false}>Cancelar</button>
+                  @click=${() => {
+  this.mostrarCadastro = false
+  this.pacienteEditando = null
+}}>Cancelar</button>
               </div>
             </form>
           ` : ''}
@@ -826,9 +919,16 @@ private async cadastrarPaciente(event: Event) {
                         <td>${paciente.telefone || '-'}</td>
                         <td><span class="status ${this.classeStatus(paciente.status)}">${paciente.status}</span></td>
                         <td>
-                          <button class="danger-button"
-                            @click=${() => this.excluirPaciente(index)}>Excluir</button>
-                        </td>
+  <button class="secondary-button"
+    @click=${() => this.editarPaciente(paciente)}>
+    Editar
+  </button>
+
+  <button class="danger-button"
+    @click=${() => this.excluirPaciente(index)}>
+    Excluir
+  </button>
+</td>
                       </tr>
                     `
                   })}
